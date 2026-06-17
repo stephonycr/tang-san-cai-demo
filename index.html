@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="luxury">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三元唐俑 - 3D 互动时空镜像</title>
+    <script>
+        // Global error listener to capture any frontend exceptions during VM testing
+        window.onerror = function(message, source, lineno, colno, error) {
+            alert(`⚠️ Browser JS Error!\n\nMsg: ${message}\nFile: ${source.split('/').pop()}\nLine: ${lineno}\nStack: ${error ? error.stack.substring(0, 200) + '...' : 'N/A'}`);
+            return false;
+        };
+    </script>
+    <!-- Tailwind & DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@1.20.1/dist/full.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Noto+Serif+SC:wght@300;400;600;900&family=Space+Grotesk:wght@400;700&display=swap');
+        
+        .font-classical {
+            font-family: 'Noto Serif SC', 'Noto Serif CJK SC', 'SimSun', serif;
+        }
+        .font-roman {
+            font-family: 'Cinzel', serif;
+        }
+        .font-tech {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: radial-gradient(circle at center, #1c1c18 0%, #060605 100%) !important;
+            background-color: #060605 !important;
+        }
+        
+        /* Premium custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(212, 175, 55, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.15);
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(212, 175, 55, 0.3);
+        }
+
+        /* Base Museum Card */
+        .museum-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(18, 18, 16, 0.45);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 1px solid rgba(212, 175, 55, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .museum-card:hover {
+            background: rgba(28, 28, 24, 0.6);
+            border-color: rgba(212, 175, 55, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Active Museum Card */
+        .museum-card-active {
+            background: rgba(212, 175, 55, 0.04) !important;
+            border-color: rgba(212, 175, 55, 0.7) !important;
+            box-shadow: 0 10px 45px rgba(212, 175, 55, 0.12), 0 0 20px rgba(212, 175, 55, 0.03) !important;
+            transform: scale(1.02);
+        }
+
+        /* Luxury Card Numbering */
+        .museum-card-num {
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            font-weight: 700;
+            color: rgba(212, 175, 55, 0.3);
+            width: 20px;
+            text-align: center;
+            transition: color 0.5s;
+        }
+        .museum-card-active .museum-card-num {
+            color: #d4af37;
+            text-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+        }
+
+        /* Luxury Thumbnails */
+        .museum-card-thumb {
+            width: 40px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(212, 175, 55, 0.12);
+            transition: border-color 0.5s;
+        }
+        .museum-card-active .museum-card-thumb {
+            border-color: rgba(212, 175, 55, 0.6);
+        }
+
+        /* Custom Badges */
+        .museum-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: 700;
+            margin-top: 6px;
+            border: 1px solid rgba(212, 175, 55, 0.12);
+            color: rgba(212, 175, 55, 0.5);
+            background: rgba(212, 175, 55, 0.01);
+            letter-spacing: 0.08em;
+            transition: all 0.5s;
+        }
+        .museum-badge-active {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: 700;
+            margin-top: 6px;
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            color: #d4af37;
+            background: rgba(212, 175, 55, 0.08);
+            letter-spacing: 0.08em;
+            transition: all 0.5s;
+        }
+    </style>
+    
+    <!-- --- CDNs FOR 3D GRAPHICS & MOTION CAPTURE --- -->
+    <!-- 1. Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 2. OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- 3. MediaPipe Pose (Loaded Locally to avoid VM Network issues) -->
+    <script src="mediapipe/pose.js"></script>
+    <!-- 4. MediaPipe Camera Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+</head>
+<body class="gradient-bg min-h-screen font-sans flex items-center justify-center p-4 md:p-6 overflow-x-hidden select-none text-amber-100/90">
+
+    <!-- Grand Two-Column Kiosk Container (Max-width 820px: 320px Left Nav + 450px Right Mirror + gap) -->
+    <div class="w-full max-w-[820px] grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+        
+        <!-- ================= LEFT COLUMN: FIGURINE NAVIGATION SELECTOR (5 cols) ================= -->
+        <div class="md:col-span-5 flex flex-col gap-4 self-stretch justify-center pr-2">
+            
+            <!-- Museum Title Header -->
+            <div class="text-left py-1 pb-2 border-b border-amber-500/10">
+                <h1 class="text-2xl font-black text-amber-500 tracking-[0.2em] uppercase flex items-center gap-2 font-classical">
+                    <i class="fa-solid fa-mirror-half animate-pulse text-amber-600/80"></i> 大唐·时空幻影镜
+                </h1>
+                <p class="text-[8px] text-amber-500/60 font-bold tracking-[0.25em] mt-1 font-roman">THE SANCAI HOLOGRAPHIC TIME MIRROR</p>
+            </div>
+            
+            <div class="text-left mt-1">
+                <h3 class="text-xs font-bold text-amber-100/50 uppercase tracking-widest flex items-center gap-1.5 font-classical">
+                    <i class="fa-solid fa-landmark text-amber-500/70"></i> 馆藏唐三彩选单
+                </h3>
+                <p class="text-[10px] text-amber-100/40 mt-1 font-classical">选择一尊大唐非遗仕女，站在时空镜前开始唤醒</p>
+            </div>
+
+            <!-- Figurine Cards List -->
+            <div class="flex flex-col gap-3 mt-1" id="figurineSelectorContainer">
+                
+                <!-- Figurine 1 -->
+                <div id="cardFigurine_0" class="museum-card museum-card-active" onclick="updateFigurineDisplay(0)">
+                    <span class="museum-card-num">I</span>
+                    <img class="museum-card-thumb" src="assets/images/optimal_1.jpg" />
+                    <div class="min-w-0 flex-grow">
+                        <h4 class="text-xs font-bold text-amber-500 font-classical truncate">反弹琵琶 · 伞裙乐人</h4>
+                        <span class="museum-badge-active">琵琶乐伎</span>
+                    </div>
+                </div>
+
+                <!-- Figurine 2 -->
+                <div id="cardFigurine_1" class="museum-card" onclick="updateFigurineDisplay(1)">
+                    <span class="museum-card-num">II</span>
+                    <img class="museum-card-thumb" src="assets/images/optimal_2.jpg" />
+                    <div class="min-w-0 flex-grow">
+                        <h4 class="text-xs font-medium text-amber-100/70 font-classical truncate">大唐拂袖 · 拂袖仕女</h4>
+                        <span class="museum-badge">霓裳羽衣</span>
+                    </div>
+                </div>
+
+                <!-- Figurine 3 -->
+                <div id="cardFigurine_2" class="museum-card" onclick="updateFigurineDisplay(2)">
+                    <span class="museum-card-num">III</span>
+                    <img class="museum-card-thumb" src="assets/images/optimal_3.jpg" />
+                    <div class="min-w-0 flex-grow">
+                        <h4 class="text-xs font-medium text-amber-100/70 font-classical truncate">仙人指路 · 执乐仕女</h4>
+                        <span class="museum-badge">宫廷舞伎</span>
+                    </div>
+                </div>
+
+                <!-- Figurine 4 -->
+                <div id="cardFigurine_3" class="museum-card" onclick="updateFigurineDisplay(3)">
+                    <span class="museum-card-num">IV</span>
+                    <img class="museum-card-thumb" src="assets/images/optimal_4.jpeg" />
+                    <div class="min-w-0 flex-grow">
+                        <h4 class="text-xs font-medium text-amber-100/70 font-classical truncate">敦煌飞天 · 飞天乐伎</h4>
+                        <span class="museum-badge">敦煌壁画</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= RIGHT COLUMN: VERTICAL SMART MIRROR KIOSK (7 cols) ================= -->
+        <div class="md:col-span-7 flex flex-col gap-4">
+
+            <!-- 2. The Vertical Holographic Mirror (Height: 680px, Width: 100%) -->
+            <div id="unifiedStage" class="relative w-full rounded-[2rem] overflow-hidden bg-[#060605] border-4 border-amber-500/20 shadow-[0_0_50px_rgba(0,0,0,0.8)] transition-all duration-700 hover:border-amber-500/40" style="height: 680px;">
+                
+                <!-- 1. Live Webcam Feed (Background) -->
+                <video id="webcam" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover" style="transform: scaleX(-1);"></video>
+                
+                <!-- Camera Error / Warning HUD -->
+                <div id="cameraWarningHUD" class="hidden absolute inset-0 bg-neutral-950/98 p-8 flex flex-col items-center justify-center text-center z-[24] space-y-4 border border-amber-500/20">
+                    <div class="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 animate-bounce shadow-lg border border-amber-500/20">
+                        <i class="fa-solid fa-camera text-2xl"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-amber-500 font-classical">📸 本地摄像头访问受阻 (Camera Locked)</h4>
+                    <p class="text-xs text-amber-100/70 leading-relaxed max-w-[85%] font-classical">
+                        浏览器安全策略限制了摄像头权限。若您使用远程开发机，<b>必须</b>使用以下本地回环地址访问：<br/>
+                        <span class="text-amber-400 font-mono select-all font-bold text-xs bg-neutral-900 px-2.5 py-1 rounded mt-2 inline-block border border-amber-500/10">http://localhost:8000</span><br/>
+                        <span class="text-[10px] text-amber-100/40 block mt-2">（或在手机/Mac端开启摄像头授权，并确保没有被 Google Meet/Zoom 等占用）</span>
+                    </p>
+                    <div class="w-full h-px bg-amber-500/10 my-1"></div>
+                    <p class="text-[11px] text-amber-500/80 font-classical">
+                        ✨ 请调整您的浏览器访问地址，并确保无软件占用摄像头。
+                    </p>
+                    <button class="px-4 py-2 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-classical text-xs font-bold tracking-widest transition-all duration-300 shadow-md" onclick="retryWebcamAccess()">
+                        <i class="fa-solid fa-arrows-rotate mr-1 animate-spin"></i> 重试摄像头连接 (Retry)
+                    </button>
+                </div>
+                
+                <!-- 2. Sancai Figurine Hologram Overlay (Defaulted to Pose 1: Umbrella-Skirt Musician - Aligned to match video size perfectly, with warm Sancai gold glow) -->
+                <img id="stageFigurineImg" class="absolute inset-0 w-full h-full object-contain select-none transition-all duration-700 z-10 opacity-40 filter drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]" src="assets/images/optimal_1.jpg" alt="Tang Figurine Hologram" />
+                
+                <!-- 3. SVG Silhouette Overlay -->
+                <svg id="poseSilhouetteSVG" class="absolute inset-0 w-full h-full pointer-events-none opacity-55 select-none z-15 hidden" style="transform: scaleX(-1); transform-origin: center;" viewBox="0 0 320 320">
+                    <!-- SVG paths will be injected by script -->
+                </svg>
+                
+                <!-- 4. Cinematic Pre-rendered Video Player Overlay (Opacity 0.99 prevents browser from throttling background webcam) -->
+                <video id="renderVideoPlayer" class="absolute inset-0 w-full h-full object-contain z-20 hidden" style="opacity: 0.99;" playsinline></video>
+                
+                <!-- 5. Radial Progress Match HUD -->
+                <div id="poseMatchHUD" class="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-40 opacity-0 transition-opacity duration-300 pointer-events-none z-25">
+                    <div id="poseMatchRadial" class="radial-progress text-amber-500 font-bold text-lg bg-[#060605]/90 border-4 border-amber-500/20 shadow-2xl font-tech" style="--value:0; --size:6.5rem; --thickness: 8px;">0%</div>
+                    <span class="mt-3 text-xs font-semibold text-amber-500 px-3 py-1.5 bg-neutral-950/90 backdrop-blur-md border border-amber-500/30 rounded-full shadow-2xl animate-pulse font-classical tracking-wider" id="poseMatchLabel">匹配度达到 60% 即可唤醒...</span>
+                </div>
+
+                <!-- Floating Figurine Title Badge (Top-Left) -->
+                <div class="absolute top-4 left-4 z-25 flex flex-col gap-1.5 items-start">
+                    <span id="trackingStatus" class="bg-neutral-950/85 backdrop-blur-md border border-white/5 text-[9px] text-amber-100/80 px-2.5 py-1.5 rounded-md shadow-2xl tracking-wider flex items-center select-none font-classical">
+                        <span class="w-1.5 h-1.5 rounded-full bg-error animate-ping mr-1.5" id="statusDot"></span>
+                        摄像头关闭
+                    </span>
+                    <div class="bg-neutral-950/85 backdrop-blur-md border border-amber-500/20 text-[9px] font-bold text-amber-500 px-2.5 py-1.5 rounded-md shadow-2xl tracking-widest font-classical uppercase" id="activeChallengeBadge">正在挑战：伞裙乐人 · 反弹琵琶</div>
+                </div>
+
+                <!-- Floating Active Match Score Badge (Top-Right) -->
+                <div class="absolute top-4 right-4 z-25 select-none">
+                    <div id="poseMatchScoreText" class="font-tech text-xs font-bold text-amber-500 px-2.5 py-1.5 bg-neutral-950/85 backdrop-blur-md border border-amber-500/20 shadow-2xl rounded-md tracking-wider">0%</div>
+                </div>
+
+                <!-- Unified Canvas Loader Overlay -->
+                <div id="canvasLoader" class="hidden absolute inset-0 bg-neutral-950/90 z-30 flex flex-col items-center justify-center space-y-4">
+                    <div class="animate-spin rounded-full h-12 w-12 border-2 border-amber-500/10 border-t-amber-500"></div>
+                    <h3 class="text-xs font-bold text-amber-500 animate-pulse font-classical tracking-[0.25em]" id="loaderTitle">正在重组时空...</h3>
+                </div>
+            </div>
+
+            <!-- 3. Integrated Info & Control Card (Museum Style) -->
+            <div class="bg-neutral-950/40 backdrop-blur-md border border-amber-500/10 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="p-4 space-y-3">
+                    
+                    <!-- Museum Artifact Label Row -->
+                    <div class="flex items-center gap-3 bg-neutral-900/50 p-3 rounded-xl select-none justify-between border border-amber-500/5">
+                        <div class="flex items-center gap-3 flex-grow overflow-hidden">
+                            <img id="museumFigurineThumb" class="w-10 h-14 object-cover rounded-lg bg-black border border-amber-500/20 shadow-md transition-all duration-500" src="" />
+                            <div class="flex-grow min-w-0">
+                                <h4 class="text-xs font-bold text-amber-500 flex items-center gap-1.5 truncate font-classical">
+                                    <i class="fa-solid fa-scroll text-amber-600/80"></i> 
+                                    <span id="museumFigurineName">-</span>
+                                </h4>
+                                <p id="museumFigurineDesc" class="text-[10px] text-amber-100/60 leading-relaxed mt-1 font-classical">-</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Score removed here to favor floating top-right video overlay score badge -->
+                    </div>
+
+                    <!-- Sleek Integrated Control Actions -->
+                    <div class="pt-1">
+                        <button id="skipPoseBtn" class="w-full py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-amber-500 font-classical text-xs font-bold tracking-[0.2em] transition-all duration-300 shadow-lg" onclick="skipPoseChallenge()">
+                            ⚡ 直接唤醒唐三彩乐舞 (Direct Awaken)
+                        </button>
+                    </div>
+                    
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- --- HIDDEN AUDIO ELEMENT FOR WEBAUDIO API MUSIC MIXING --- -->
+    <!-- Standard upbeat test track URL (reliable CDN) -->
+    <audio id="bg-music" loop crossorigin="anonymous" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
+
+    <!-- --- LINK LOCAL WEBGL/MOTION CAPTURE scripts (with cache busters) --- -->
+    <script src="avatar_puppet.js?v=115"></script>
+    <script src="audio_video_recorder.js?v=115"></script>
+    <script src="motion_capture.js?v=115"></script>
+
+    <!-- --- FIGURINES DATABASE (Carousel Exhibit Database) --- -->
+    <script>
+        // 🏺 大唐时空幻影镜——展项资产数据库 (Carousel Exhibit Database)
+        const FIGURINES_DB = {
+            optimal_1: {
+                id: "optimal_1",
+                name: "反弹琵琶 · 伞裙乐人",
+                badge: "大唐非遗 · 琵琶乐伎",
+                desc: "双手水平举起，釉色斑驳绚丽，作盛唐经典的横笛乐人舞姿，雍容大方。",
+                image: "assets/images/optimal_1.jpg",
+                video: "assets/videos/optimal_1.MOV",
+                poseKey: "optimal_1",
+                poseLabel: "正在挑战：伞裙乐人 · 双手水平"
+            },
+            optimal_2: {
+                id: "optimal_2",
+                name: "大唐拂袖 · 拂袖仕女",
+                badge: "大唐非遗 · 霓裳羽衣",
+                desc: "左手高扬展袖长舞，釉彩斑驳绚丽，衣纹飘逸灵动，尽显盛唐乐舞的舒展姿态。",
+                image: "assets/images/optimal_2.jpg",
+                video: "assets/videos/optimal_2.MOV",
+                poseKey: "optimal_2",
+                poseLabel: "正在挑战：拂袖仕女 · 抬起左手"
+            },
+            optimal_3: {
+                id: "optimal_3",
+                name: "仙人指路 · 执乐仕女",
+                badge: "大唐非遗 · 宫廷舞伎",
+                desc: "左手斜斜向外轻盈扬起，右手优雅举至胸前，体态温婉端庄，釉彩斑驳绚丽。",
+                image: "assets/images/optimal_3.jpg",
+                video: "assets/videos/optimal_3.MOV",
+                poseKey: "optimal_3",
+                poseLabel: "正在挑战：执乐仕女 · 左手斜举，右手抱胸"
+            },
+            optimal_4: {
+                id: "optimal_4",
+                name: "敦煌飞天 · 飞天乐伎",
+                badge: "大唐非遗 · 敦煌壁画",
+                desc: "左手高高昂起高于肩膀，右手向外微微舒展张开，展现飞天乐伎临风翱翔的经典仙姿。",
+                image: "assets/images/optimal_4.jpeg",
+                video: "assets/videos/optimal_4.mp4",
+                poseKey: "optimal_4",
+                poseLabel: "正在挑战：飞天乐伎 · 左手高抬，右手微张"
+            }
+        };
+
+        const FIGURINE_KEYS = ['optimal_1', 'optimal_2', 'optimal_3', 'optimal_4'];
+        let currentFigurineIndex = 0;
+    </script>
+
+    <!-- --- ORCHESTRATOR CORE SCRIPT --- -->
+    <script>
+        // --- REMARKABLE ON-SCREEN DEBUG LOGGER INTERCEPTOR ---
+        (function() {
+            window.addEventListener('DOMContentLoaded', () => {
+                const consoleDiv = document.getElementById('logConsoleLines');
+                const loggerContainer = document.getElementById('onScreenLogger');
+                
+                function addLogLine(text, colorClass = 'text-gray-300') {
+                    // Auto-reveal disabled for production showcase. Console stays permanently hidden.
+                    if (consoleDiv) {
+                        const line = document.createElement('div');
+                        line.className = `${colorClass} leading-tight break-all border-b border-white/5 py-0.5`;
+                        line.innerText = `[${new Date().toLocaleTimeString()}] ${text}`;
+                        consoleDiv.appendChild(line);
+                        while (consoleDiv.children.length > 80) {
+                            consoleDiv.removeChild(consoleDiv.firstChild);
+                        }
+                        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+                    }
+                }
+                
+                const originalLog = console.log;
+                console.log = function(...args) {
+                    originalLog.apply(console, args);
+                    addLogLine(args.join(' '), 'text-gray-300');
+                };
+                
+                const originalWarn = console.warn;
+                console.warn = function(...args) {
+                    originalWarn.apply(console, args);
+                    addLogLine(args.join(' '), 'text-yellow-400 font-semibold');
+                };
+                
+                const originalError = console.error;
+                console.error = function(...args) {
+                    originalError.apply(console, args);
+                    addLogLine(args.join(' '), 'text-red-400 font-semibold');
+                };
+                
+                window.onerror = function(message, source, lineno, colno, error) {
+                    addLogLine(`💥 运行时崩溃: ${message} (文件: ${source ? source.split('/').pop() : 'unknown'}, 行: ${lineno}:${colno})`, 'text-red-500 font-bold bg-red-950/50 px-1 rounded');
+                    return false;
+                };
+                
+                console.log("[Orchestrator] On-screen debugger successfully hooked to console channels.");
+            });
+        })();
+
+        let avatar = null;
+        let recorder = null;
+        let mocap = null;
+        let webcamElement = document.getElementById('webcam');
+        let bgMusicElement = document.getElementById('bg-music');
+        let webcamStream = null;
+
+        // Beautiful Toast Notification Helper
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) {
+                console.log(`[Toast Fallback] [${type}] ${message}`);
+                return;
+            }
+            
+            const toast = document.createElement('div');
+            // DaisyUI classes: alert, alert-success, alert-error, alert-warning, alert-info
+            toast.className = `alert alert-${type} shadow-lg text-sm transition-all duration-300 transform translate-y-4 opacity-0 z-[1000]`;
+            
+            let icon = '💡';
+            if (type === 'success') icon = '✅';
+            if (type === 'error' || type === 'warning') icon = '⚠️';
+            
+            toast.innerHTML = `<div><span>${icon} ${message}</span></div>`;
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+            }, 10);
+            
+            // Remove after 3.5 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-y-4', 'opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3500);
+        }
+
+        // Resilient fetch wrapper with network timeout fallback
+        function fetchWithTimeout(url, options, timeout = 25000) {
+            return Promise.race([
+                fetch(url, options),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("请求超时 (Timeout after 25s)")), timeout)
+                )
+            ]);
+        }
+
+        /**
+         * Dynamic Carousel Figurine Renderer & State Sync
+         */
+        function updateFigurineDisplay(index) {
+            // Forcefully interrupt and stop any playing dance video, restoring tracking trigger mode!
+            if (typeof stopDanceAwakening === 'function') {
+                stopDanceAwakening();
+            }
+            
+            currentFigurineIndex = index;
+            const key = FIGURINE_KEYS[index];
+            const figurine = FIGURINES_DB[key];
+            window.matchedFigurineId = key; // Sync active figurine key globally
+            window.currentActivePoseKey = figurine.poseKey; // Set global pose key to prevent race conditions!
+            
+            console.log(`[Orchestrator] Switching display to figurine: ${key} (${figurine.name})`);
+            
+            // 1. Update Museum Card Contents
+            const thumb = document.getElementById('museumFigurineThumb');
+            const name = document.getElementById('museumFigurineName');
+            const desc = document.getElementById('museumFigurineDesc');
+            if (thumb) thumb.src = figurine.image;
+            if (name) name.innerText = figurine.name;
+            if (desc) desc.innerText = figurine.desc;
+            
+            // 2. Update Mirror Hologram Image Overlay (with warm Sancai gold glow)
+            const stageImg = document.getElementById('stageFigurineImg');
+            if (stageImg) {
+                stageImg.src = figurine.image;
+                stageImg.style.opacity = "0.40"; // Reset to initial transparent state
+                stageImg.style.filter = "drop-shadow(0 0 15px rgba(212,175,55,0.4))";
+            }
+            
+            // 3. Update Mirror Badges & Silhouette Guidelines
+            const challengeBadge = document.getElementById('activeChallengeBadge');
+            if (challengeBadge) challengeBadge.innerText = figurine.poseLabel;
+            
+            // Skeleton guide disabled to favor a completely natural and immersive magic mirror experience
+            
+            if (mocap) {
+                mocap.activePoseKey = figurine.poseKey;
+                mocap.matchStartTime = null; // Reset pose hold timer on switch
+                updateSilhouetteSVG(figurine.poseKey);
+            }
+            
+            // 4. Explicitly reset score badges and progress indicators to 0% immediately on switch!
+            const scoreBadge = document.getElementById('poseMatchScoreText');
+            if (scoreBadge) {
+                scoreBadge.innerText = `匹配度: 0%`;
+                scoreBadge.className = "font-tech text-xs font-bold text-amber-500/60 px-2.5 py-1.5 bg-neutral-950/85 backdrop-blur-md border border-amber-500/20 shadow-2xl rounded-md tracking-wider";
+            }
+            const radial = document.getElementById('poseMatchRadial');
+            if (radial) {
+                radial.style.setProperty('--value', 0);
+                radial.innerText = `0%`;
+                radial.className = "radial-progress text-amber-500 font-bold text-lg bg-[#060605]/90 border-4 border-amber-500/20 shadow-2xl font-tech";
+            }
+            const matchLabel = document.getElementById('poseMatchLabel');
+            if (matchLabel) {
+                matchLabel.innerText = "匹配度达到 60% 即可唤醒...";
+                matchLabel.className = "mt-3 text-xs font-semibold text-amber-500 px-3 py-1.5 bg-neutral-950/90 backdrop-blur-md border border-amber-500/30 rounded-full shadow-2xl animate-pulse font-classical tracking-wider";
+            }
+            const hud = document.getElementById('poseMatchHUD');
+            if (hud) {
+                hud.style.opacity = '0';
+                hud.classList.add('pointer-events-none');
+            }
+
+            // 4. Update Left Column Selection Card Highlighting (frosted gold theme swapping)
+            FIGURINE_KEYS.forEach((fKey, i) => {
+                const card = document.getElementById(`cardFigurine_${i}`);
+                if (card) {
+                    const heading = card.querySelector('h4');
+                    const badge = card.querySelector('.museum-badge, .museum-badge-active');
+                    
+                    if (i === index) {
+                        card.className = "museum-card museum-card-active";
+                        if (heading) heading.className = "text-xs font-bold text-amber-500 font-classical truncate";
+                        if (badge) {
+                            badge.className = "museum-badge-active";
+                            badge.innerText = FIGURINES_DB[fKey].badge.split(' · ')[1] || "精选";
+                        }
+                    } else {
+                        card.className = "museum-card";
+                        if (heading) heading.className = "text-xs font-medium text-amber-100/70 font-classical truncate";
+                        if (badge) {
+                            badge.className = "museum-badge";
+                            badge.innerText = FIGURINES_DB[fKey].badge.split(' · ')[1] || "精选";
+                        }
+                    }
+                }
+            });
+            
+            // Play a satisfying high-end UI click chime
+            playUIChime();
+        }
+
+        /**
+         * Quick high-end synth chime for tactile carousel navigation feedback
+         */
+        function playUIChime() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(550, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.04, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.08);
+            } catch (e) {
+                // AudioContext blocked by user gesture policy
+            }
+        }
+
+        // Initialize local webcam or video components on window load
+        window.addEventListener('load', async () => {
+            // Dynamically configure Ollama default endpoint based on current host (supports Cloudtop hostnames)
+            const defaultHost = window.location.hostname || "localhost";
+            const apiEndpointInput = document.getElementById('apiEndpoint');
+            if (apiEndpointInput) {
+                apiEndpointInput.value = `http://${defaultHost}:11434/v1`;
+            }
+
+            // Log Library Load Status to console
+            console.log(`[Diag] Library Load Status: Pose=${typeof window.Pose}, THREE=${typeof THREE}`);
+            
+            // 1. Start WebGL Three.js Engine (Wrapped in try/catch to capture headless VM WebGL failures)
+            try {
+                avatar = new AvatarEngine("threejs-canvas");
+            } catch (e) {
+                showToast("WebGL 3D Avatar Engine CRASH! VM hardware acceleration disabled?", "error");
+                console.error("Three.js avatar initialization crashed:", e);
+            }
+            
+            // 2. Initialize Web Audio A/V Recorder
+            recorder = new AudioVideoRecorder(document.getElementById("threejs-canvas"), bgMusicElement);
+            
+            // 3. Try starting with webcam by default, fallback to sample video on Cloudtop
+            try {
+                console.log("Attempting to access webcam...");
+                webcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+                webcamElement.srcObject = webcamStream;
+                
+                createMocapEngine();
+                updateTrackingBadge("success", "摄像头已开启");
+            } catch (e) {
+                console.warn("Webcam access failed on load:", e);
+                // Reveal the camera warning HUD overlay!
+                const warningHUD = document.getElementById('cameraWarningHUD');
+                if (warningHUD) {
+                    warningHUD.classList.remove('hidden');
+                }
+                updateTrackingBadge("error", "摄像头未开启");
+            }
+            
+            // 4. Initialize default Sancai figurine carousel state on load!
+            setTimeout(() => {
+                if (typeof updateFigurineDisplay === 'function') {
+                    updateFigurineDisplay(0);
+                }
+            }, 800);
+        });
+
+        /**
+         * Retries requesting local webcam access and resets mocap engine on success
+         */
+        async function retryWebcamAccess() {
+            console.log("[Orchestrator] Retrying webcam access...");
+            // Hide warning HUD overlay during check
+            document.getElementById('cameraWarningHUD').classList.add('hidden');
+            
+            try {
+                webcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+                webcamElement.srcObject = webcamStream;
+                createMocapEngine();
+                updateTrackingBadge("success", "摄像头已开启");
+            } catch (e) {
+                console.error("Webcam retry failed:", e);
+                // Re-reveal warning HUD overlay
+                document.getElementById('cameraWarningHUD').classList.remove('hidden');
+                updateTrackingBadge("error", "摄像头未开启");
+                showToast("摄像头连接失败，请检查浏览器设置或使用 localhost 域名！", "error");
+            }
+        }
+
+        // Global Frame/Result Counters for Deep Diagnostics on VM
+        window.mocapFrames = 0;
+        window.mocapResults = 0;
+
+        window.incrementFrameCount = function() {
+            window.mocapFrames += 1;
+            updateFrameDisplay();
+        };
+
+        window.incrementResultCount = function() {
+            window.mocapResults += 1;
+            updateFrameDisplay();
+        };
+
+        function updateFrameDisplay() {
+            const badge = document.getElementById('trackingStatus');
+            if (badge) {
+                const text = badge.innerText.split('(')[0].trim();
+                const dot = document.getElementById('statusDot');
+                let colorClass = "bg-info";
+                if (dot) {
+                    if (dot.classList.contains('bg-success')) colorClass = "bg-success";
+                    if (dot.classList.contains('bg-error')) colorClass = "bg-error";
+                    if (dot.classList.contains('bg-warning')) colorClass = "bg-warning";
+                }
+                badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full mr-1.5 ${colorClass}" id="statusDot"></span> ${text} (发:${window.mocapFrames} | 收:${window.mocapResults})`;
+            }
+        }
+
+        function updateTrackingBadge(type, text) {
+            const badge = document.getElementById('trackingStatus');
+            if (!badge) return;
+            
+            let colorClass = "bg-error";
+            if (type === 'success') colorClass = "bg-success";
+            if (type === 'info') colorClass = "bg-info";
+            if (type === 'warning') colorClass = "bg-warning";
+            
+            badge.className = "badge badge-ghost gap-1 text-[10px] text-white bg-black bg-opacity-50 py-2 px-3 rounded-full shadow-md";
+            badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full mr-1.5 ${colorClass}" id="statusDot"></span> ${text} (发:${window.mocapFrames} | 收:${window.mocapResults})`;
+        }
+
+        function toggleApiInput() {
+            const runMode = document.getElementById('runMode').value;
+            const geminiContainer = document.getElementById('geminiContainer');
+            const gemmaContainer = document.getElementById('gemmaContainer');
+            
+            geminiContainer.classList.add('hidden');
+            gemmaContainer.classList.add('hidden');
+            
+            if (runMode === 'gemini') {
+                geminiContainer.classList.remove('hidden');
+            } else if (runMode === 'gemma') {
+                gemmaContainer.classList.remove('hidden');
+            }
+        }
+
+        function showLoader(show, title = "", subtitle = "") {
+            const loader = document.getElementById('canvasLoader');
+            if (show) {
+                document.getElementById('loaderTitle').innerText = title;
+                document.getElementById('loaderSubtitle').innerText = subtitle;
+                loader.classList.remove('hidden');
+            } else {
+                loader.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Captured from the video stream, performs Gemma VLM match, and updates avatar mannequin colors
+         */
+        async function triggerOotdMatch() {
+            if (!webcamStream && !webcamElement.src) return;
+            if (webcamElement.videoWidth === 0) {
+                showToast("动作输入源视频尚未加载完成，请稍后重试！", "warning");
+                return;
+            }
+            
+            showLoader(true, "捕捉 OOTD 影像中...", "正在截取当前摄像头画面特征...");
+            
+            // 1. Capture single frame from live video element
+            const canvas = document.createElement('canvas');
+            canvas.width = webcamElement.videoWidth;
+            canvas.height = webcamElement.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(webcamElement, 0, 0, canvas.width, canvas.height);
+            const base64Image = canvas.toDataURL('image/jpeg');
+            
+            const runMode = document.getElementById('runMode').value;
+            let userTags = null;
+            
+            showLoader(true, "时空重组中...", "正在使用 AI 解析中西融合服装特征...");
+
+            // Set a warning timer if it takes too long (e.g. running local VLM on CPU)
+            const warningTimer = setTimeout(() => {
+                if (runMode === 'gemma') {
+                    const subtitleEl = document.getElementById('loaderSubtitle');
+                    if (subtitleEl) {
+                        subtitleEl.innerHTML = `
+                            正在使用本地 Ollama (CPU) 解析服装特征...<br/>
+                            <span class="text-warning font-semibold">⚠️ 温馨提示：本地 CPU 推理较慢，可能需要 1-2 分钟。<br/>您可以随时刷新并切换至「演示模式」获得秒级体验！</span>
+                        `;
+                    }
+                }
+            }, 8000);
+
+            try {
+                if (runMode === 'mock') {
+                    await sleep(1500);
+                    userTags = getRandomTags();
+                } else if (runMode === 'gemini') {
+                    const apiKey = document.getElementById('geminiApiKey').value;
+                    if (!apiKey) throw new Error("请输入 Gemini API Key！");
+                    userTags = await analyzeImageWithGemini(base64Image, apiKey);
+                } else if (runMode === 'gemma') {
+                    const endpoint = document.getElementById('apiEndpoint').value;
+                    const apiKey = document.getElementById('gemmaApiKey').value;
+                    const modelName = document.getElementById('modelName').value;
+                    if (!endpoint) throw new Error("请输入 API Endpoint URL！");
+                    userTags = await analyzeImageWithGemma(base64Image, endpoint, apiKey, modelName);
+                }
+                
+                console.log("AI Classification Result:", userTags);
+                
+                // 2. Match against database
+                const matchResult = matchFigurine(userTags);
+                console.log("Matched Figurine:", matchResult);
+                
+                // Store matched ID globally for pre-rendered video routing!
+                window.matchedFigurineId = matchResult.figurine.id;
+                
+                // 3. Update UI stats
+                document.getElementById('matchedAvatarName').innerText = matchResult.figurine.name;
+                document.getElementById('tagColor').innerText = userTags.color;
+                document.getElementById('tagStyle').innerText = userTags.style;
+                document.getElementById('tagMaterial').innerText = userTags.material;
+                document.getElementById('tagHair').innerText = userTags.hair;
+                document.getElementById('tagPattern').innerText = userTags.pattern;
+                
+                // 3.5 Display the matched 2D original CAFA art image on both the stats card and the main stage!
+                if (matchResult.figurine.image_path) {
+                    const imgUrl = encodeURI(matchResult.figurine.image_path);
+                    document.getElementById('matched2DImage').src = imgUrl;
+                    document.getElementById('matchedImageCard').classList.remove('hidden');
+                    
+                    // Direct museum stage display!
+                    const stageImg = document.getElementById('stageFigurineImg');
+                    if (stageImg) {
+                        stageImg.src = imgUrl;
+                        stageImg.classList.remove('hidden'); // Reveal the matched figurine!
+                    }
+                    
+                    // Reveal the Pose Challenge UI and the Silhouette overlay!
+                    const poseContainer = document.getElementById('poseSelectorContainer');
+                    if (poseContainer) {
+                        poseContainer.classList.remove('hidden');
+                    }
+                    const silhouette = document.getElementById('poseSilhouetteSVG');
+                    if (silhouette) {
+                        silhouette.classList.remove('hidden');
+                        updateSilhouetteSVG(window.currentActivePoseKey || 'sleeve');
+                    }
+                }
+                
+                // 4. Update our Fallback Geometric Mannequin Color Palette (only if running Three.js)
+                if (avatar) {
+                    updateMannequinColorPalette(userTags.color);
+                    if (typeof avatar.updateFigurine === 'function') {
+                        avatar.updateFigurine(matchResult.figurine.id, userTags);
+                    } else if (typeof avatar.updateSilhouette === 'function') {
+                        avatar.updateSilhouette(userTags.style, userTags.hair);
+                    }
+                }
+                
+                // 5. Clean loader and notify success
+                clearTimeout(warningTimer);
+                showLoader(false);
+                showToast(`穿越匹配成功！已成功融合为：${matchResult.figurine.name}！`, "success");
+            } catch (e) {
+                clearTimeout(warningTimer);
+                console.error(e);
+                showLoader(false);
+                showToast("匹配失败: " + e.message, "error");
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function getRandomTags() {
+            const colors = ["红/黄/橙", "蓝/青", "黑/白/灰", "多色/印花"];
+            const styles = ["A型/伞裙", "H型/直筒", "O型/宽松茧型", "休闲风格", "紧身风格"];
+            const materials = ["皮革/漆皮", "针织/粗花呢", "丝绸/雪纺"];
+            const hairs = ["披肩发", "高马尾", "双马尾", "丸子头/盘发", "短发"];
+            const patterns = ["波点", "线条", "纯色", "格纹", "拼色"];
+            return {
+                color: colors[Math.floor(Math.random() * colors.length)],
+                style: styles[Math.floor(Math.random() * styles.length)],
+                material: materials[Math.floor(Math.random() * materials.length)],
+                hair: hairs[Math.floor(Math.random() * hairs.length)],
+                pattern: patterns[Math.floor(Math.random() * patterns.length)]
+            };
+        }
+
+        function matchFigurine(userTags) {
+            let bestMatch = null;
+            let highestScore = -1;
+            figurinesDb.forEach(fig => {
+                let score = 0;
+                for (let key in fig.tags) {
+                    if (fig.tags[key] === userTags[key]) score += 1;
+                }
+                if (score > highestScore) {
+                    highestScore = score;
+                    bestMatch = fig;
+                }
+            });
+            return { figurine: bestMatch, score: highestScore };
+        }
+
+        /**
+         * High-precision Gemini API integration
+         */
+        async function analyzeImageWithGemini(base64Data, apiKey) {
+            const base64Image = base64Data.split(',')[1];
+            const mimeType = base64Data.split(',')[0].split(':')[1].split(';')[0];
+
+            const prompt = `
+            你是一个时尚与视觉专家。请分析这张人像照片，并根据以下五个维度对照片中人物的穿搭进行特征标注。
+            请**严格**且**仅**从给定的选项中选择最贴切的一个值。
+
+            1. 服饰颜色 (必须是以下之一: "红/黄/橙", "蓝/青", "黑/白/灰", "多色/印花")
+            2. 服饰造型 (必须是以下之一: "A型/伞裙", "H型/直筒", "O型/宽松茧型", "休闲风格", "紧身风格")
+            3. 服饰材质 (必须是以下之一: "皮革/漆皮", "针织/粗花呢", "丝绸/雪纺")
+            4. 发型 (必须是以下之一: "披肩发", "高马尾", "双马尾", "丸子头/盘发", "短发")
+            5. 服饰纹样 (必须是以下之一: "波点", "线条", "纯色", "格纹", "拼色")
+
+            请仅返回一个标准的 JSON 对象，不要包含任何 Markdown 格式（如 \`\`\`json）或其它多余文字。格式如下：
+            {
+              "color": "选中的值",
+              "style": "选中的值",
+              "material": "选中的值",
+              "hair": "选中的值",
+              "pattern": "选中的值"
+            }
+            `;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inlineData: { mimeType: mimeType, data: base64Image } }
+                    ]
+                }],
+                generationConfig: { responseMimeType: "application/json" }
+            };
+
+            const response = await fetchWithTimeout(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }, 15000);
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Gemini API error: ${response.status} - ${errText}`);
+            }
+
+            const resJson = await response.json();
+            const textResp = resJson.candidates[0].content.parts[0].text;
+            
+            let cleanText = textResp.trim();
+            const firstBracket = cleanText.indexOf('{');
+            const lastBracket = cleanText.lastIndexOf('}');
+            if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+                cleanText = cleanText.substring(firstBracket, lastBracket + 1);
+            } else {
+                throw new Error("Gemini 未能返回标准的 JSON 结构数据。");
+            }
+            return JSON.parse(cleanText);
+        }
+
+        /**
+         * Robust Gemma 4 (OpenAI-compatible) API integration w/ Fallback Keyword NLP Parser
+         */
+        async function analyzeImageWithGemma(base64Data, endpoint, apiKey, modelName) {
+            const base64Image = base64Data.split(',')[1];
+            const mimeType = base64Data.split(',')[0].split(':')[1].split(';')[0];
+
+            const tagTranslationMap = {
+                color: { "red/yellow/orange": "红/黄/橙", "blue/cyan": "蓝/青", "black/white/gray": "黑/白/灰", "multicolor/print": "多色/印花" },
+                style: { "a-line": "A型/伞裙", "h-line": "H型/直筒", "o-line": "O型/宽松茧型", "casual": "休闲风格", "tight": "紧身风格" },
+                material: { "leather": "皮革/漆皮", "knit": "针织/粗花呢", "silk": "丝绸/雪纺" },
+                hair: { "draped": "披肩发", "high-pony": "高马尾", "twin-pony": "双马尾", "updo": "丸子头/盘发", "short": "短发" },
+                pattern: { "polka-dot": "波点", "stripes": "线条", "solid": "纯色", "plaid": "格纹", "color-block": "拼色" }
+            };
+
+            const prompt = `
+            You are a fashion expert. Analyze this person's outfit in the image and classify it into these 5 categories. 
+            You MUST strictly choose ONLY ONE value from the allowed list for each category:
+
+            1. color (choose from: "red/yellow/orange", "blue/cyan", "black/white/gray", "multicolor/print")
+            2. style (choose from: "a-line", "h-line", "o-line", "casual", "tight")
+            3. material (choose from: "leather", "knit", "silk")
+            4. hair (choose from: "draped", "high-pony", "twin-pony", "updo", "short")
+            5. pattern (choose from: "polka-dot", "stripes", "solid", "plaid", "color-block")
+
+            Return ONLY a valid JSON object:
+            { "color": "chosen_value", "style": "chosen_value", "material": "chosen_value", "hair": "chosen_value", "pattern": "chosen_value" }
+            `;
+
+            const url = endpoint.endsWith('/') ? `${endpoint}chat/completions` : `${endpoint}/chat/completions`;
+            const headers = { 'Content-Type': 'application/json' };
+            if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+            const payload = {
+                model: modelName,
+                messages: [
+                    { role: "user", content: [ { type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } } ] }
+                ],
+                temperature: 0.1,
+                max_tokens: 200
+            };
+
+            const response = await fetchWithTimeout(url, { method: 'POST', headers: headers, body: JSON.stringify(payload) }, 35000);
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+            const resJson = await response.json();
+            const textResp = resJson.choices[0].message.content;
+            let cleanText = textResp.trim();
+
+            // Fallback Keyword Extractor
+            const keywordExtractorMap = {
+                color: [ { keywords: ["red", "yellow", "orange"], tag: "红/黄/橙" }, { keywords: ["blue", "cyan", "green"], tag: "蓝/青" }, { keywords: ["black", "white", "gray"], tag: "黑/白/灰" }, { keywords: ["multi", "print", "color"], tag: "多色/印花" } ],
+                style: [ { keywords: ["a-line", "umbrella", "skirt", "dress"], tag: "A型/伞裙" }, { keywords: ["h-line", "straight"], tag: "H型/直筒" }, { keywords: ["o-line", "loose", "cocoon"], tag: "O型/宽松茧型" }, { keywords: ["casual"], tag: "休闲风格" }, { keywords: ["tight", "slim"], tag: "紧身风格" } ],
+                material: [ { keywords: ["leather", "patent"], tag: "皮革/漆皮" }, { keywords: ["knit", "tweed", "wool"], tag: "针织/粗花呢" }, { keywords: ["silk", "chiffon", "satin", "glaze"], tag: "丝绸/雪纺" } ],
+                hair: [ { keywords: ["draped", "down"], tag: "披肩发" }, { keywords: ["high pony", "ponytail"], tag: "高马尾" }, { keywords: ["twin pony", "double"], tag: "双马尾" }, { keywords: ["updo", "bun"], tag: "丸子头/盘发" }, { keywords: ["short"], tag: "短发" } ],
+                pattern: [ { keywords: ["polka-dot", "dot", "dots"], tag: "波点" }, { keywords: ["stripes", "line", "lines"], tag: "线条" }, { keywords: ["solid", "plain"], tag: "纯色" }, { keywords: ["plaid", "check", "grid"], tag: "格纹" }, { keywords: ["color-block"], tag: "拼色" } ]
+            };
+
+            const firstBracket = cleanText.indexOf('{');
+            const lastBracket = cleanText.lastIndexOf('}');
+            const translatedTags = {};
+            let parsedSuccessfully = false;
+
+            if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+                try {
+                    const jsonStr = cleanText.substring(firstBracket, lastBracket + 1);
+                    const parsedJson = JSON.parse(jsonStr);
+                    for (let key in tagTranslationMap) {
+                        if (parsedJson[key]) {
+                            const rawVal = parsedJson[key].toLowerCase().trim();
+                            translatedTags[key] = tagTranslationMap[key][rawVal] || parsedJson[key];
+                        } else {
+                            translatedTags[key] = "未知";
+                        }
+                    }
+                    parsedSuccessfully = true;
+                } catch (e) {
+                    console.warn("JSON parse failed, using fallback.");
+                }
+            }
+
+            if (!parsedSuccessfully) {
+                const lowerText = cleanText.toLowerCase();
+                for (let key in keywordExtractorMap) {
+                    let found = false;
+                    for (let rule of keywordExtractorMap[key]) {
+                        for (let kw of rule.keywords) {
+                            if (lowerText.includes(kw)) {
+                                translatedTags[key] = rule.tag;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) break;
+                    }
+                    if (!found) translatedTags[key] = "未知";
+                }
+            }
+            return translatedTags;
+        }
+
+        /**
+         * Updates the colors of the mannequin based on the matched OOTD color
+         */
+        function updateMannequinColorPalette(colorTag) {
+            if (!avatar || !avatar.scene) return;
+            
+            let primaryHex = 0x2e7d32; // Default Green
+            if (colorTag === "红/黄/橙") primaryHex = 0xd32f2f; // Red
+            if (colorTag === "蓝/青") primaryHex = 0x1976d2; // Blue
+            if (colorTag === "黑/白/灰") primaryHex = 0x455a64; // Gray
+            if (colorTag === "多色/印花") primaryHex = 0x7b1fa2; // Purple
+            
+            avatar.scene.traverse((child) => {
+                if (child.isMesh && child.material && child.userData.isClothing && !child.userData.ignorePaletteUpdate) {
+                    child.material.color.setHex(primaryHex);
+                }
+            });
+            console.log(`Mannequin clothing colors updated to matched OOTD hue: ${colorTag}`);
+        }
+
+        // --- MO CAP & VIDEO EXPORT TRIGGERS ---
+
+        // --- NEW: Centralized Mocap Creator & Callbacks ---
+
+        async function createMocapEngine() {
+            if (mocap) {
+                mocap.stop();
+                mocap = null;
+            }
+            
+            // Wait for the video element to have valid dimensions to prevent MediaPipe from capturing 0x0 blank frames!
+            if (webcamElement.videoWidth === 0 || webcamElement.videoHeight === 0) {
+                console.log("[Orchestrator] Webcam dimensions are 0x0, awaiting loadeddata event...");
+                await new Promise((resolve) => {
+                    webcamElement.addEventListener('loadeddata', () => {
+                        console.log(`[Orchestrator] Webcam loadeddata resolved: ${webcamElement.videoWidth}x${webcamElement.videoHeight}`);
+                        resolve();
+                    }, { once: true });
+                    // Safety fallback timeout after 500ms
+                    setTimeout(resolve, 500);
+                });
+            }
+            
+            mocap = new MotionCaptureEngine(webcamElement, avatar);
+            initializeMocapCallbacks();
+            mocap.start();
+        }
+
+        function initializeMocapCallbacks() {
+            if (!mocap) return;
+            
+            // Set the active pose key to what is selected in the UI
+            const activePose = window.currentActivePoseKey || 'optimal_1';
+            mocap.activePoseKey = activePose;
+            
+            // 1. Live match score callback (from 0 to 100 - with luxury Sancai gold/emerald gradients)
+            mocap.onPoseScore = function(score) {
+                const hud = document.getElementById('poseMatchHUD');
+                const radial = document.getElementById('poseMatchRadial');
+                
+                // Update Top-Right Score Badge in right column header (Dynamic golden-emerald progression)
+                const scoreBadge = document.getElementById('poseMatchScoreText');
+                if (scoreBadge) {
+                    scoreBadge.innerText = `匹配度: ${score}%`;
+                    if (score >= 60) {
+                        scoreBadge.className = "font-tech text-xs font-bold text-emerald-400 px-2.5 py-1.5 bg-emerald-950/80 backdrop-blur-md border border-emerald-500/80 shadow-[0_0_20px_rgba(16,185,129,0.3)] rounded-md tracking-wider animate-pulse";
+                    } else if (score >= 40) {
+                        scoreBadge.className = "font-tech text-xs font-bold text-amber-400 px-2.5 py-1.5 bg-neutral-950/85 backdrop-blur-md border border-amber-500/60 shadow-[0_0_10px_rgba(212,175,55,0.1)] rounded-md tracking-wider";
+                    } else {
+                        scoreBadge.className = "font-tech text-xs font-bold text-amber-500/60 px-2.5 py-1.5 bg-neutral-950/85 backdrop-blur-md border border-amber-500/20 shadow-2xl rounded-md tracking-wider";
+                    }
+                }
+
+                // Holographic Solidification Effect: Figurines solidify as user aligns their body! (warm Sancai gold glow)
+                const stageImg = document.getElementById('stageFigurineImg');
+                if (stageImg && !stageImg.classList.contains('hidden')) {
+                    if (score >= 60) {
+                        stageImg.style.opacity = "1.0";
+                        stageImg.style.filter = "drop-shadow(0 0 25px rgba(212,175,55,0.8))";
+                    } else {
+                        // Smoothly scale opacity from 0.4 (base) to 0.75 (aligned) based on score
+                        const opacity = 0.4 + (score / 100) * 0.35;
+                        stageImg.style.opacity = opacity;
+                        // Adjust warm Sancai gold drop shadow glow intensity dynamically
+                        const glowRadius = 10 + (score / 100) * 15;
+                        const glowAlpha = 0.3 + (score / 100) * 0.5;
+                        stageImg.style.filter = `drop-shadow(0 0 ${glowRadius}px rgba(212,175,55,${glowAlpha}))`;
+                    }
+                }
+
+                if (score > 15) {
+                    hud.classList.remove('pointer-events-none');
+                    hud.style.opacity = '1';
+                    radial.style.setProperty('--value', score);
+                    radial.innerText = `${score}%`;
+                    
+                    // Add pulsing color depending on score level (Emerald success, Amber warning)
+                    if (score >= 60) {
+                        radial.className = "radial-progress text-emerald-400 font-bold text-lg bg-neutral-950/90 border-4 border-emerald-500/30 shadow-2xl font-tech shadow-[0_0_15px_rgba(16,185,129,0.2)]";
+                        document.getElementById('poseMatchLabel').innerText = "时空共振完美！保持住姿势 (Hold...)";
+                        document.getElementById('poseMatchLabel').className = "mt-3 text-xs font-semibold text-emerald-400 px-3 py-1.5 bg-neutral-950/90 backdrop-blur-md border border-emerald-500/40 rounded-full shadow-2xl animate-pulse font-classical tracking-wider";
+                    } else if (score >= 40) {
+                        radial.className = "radial-progress text-amber-400 font-bold text-lg bg-neutral-950/90 border-4 border-amber-500/30 shadow-2xl font-tech";
+                        document.getElementById('poseMatchLabel').innerText = "接近时空唤醒点，请微调身姿...";
+                        document.getElementById('poseMatchLabel').className = "mt-3 text-xs font-semibold text-amber-400 px-3 py-1.5 bg-neutral-950/90 backdrop-blur-md border border-amber-500/40 rounded-full shadow-2xl font-classical tracking-wider";
+                    } else {
+                        radial.className = "radial-progress text-amber-500 font-bold text-lg bg-neutral-950/90 border-4 border-amber-500/20 shadow-2xl font-tech";
+                        document.getElementById('poseMatchLabel').innerText = "请对照唐俑半透明投影调整身姿...";
+                        document.getElementById('poseMatchLabel').className = "mt-3 text-xs font-semibold text-amber-500 px-3 py-1.5 bg-neutral-950/90 backdrop-blur-md border border-amber-500/20 rounded-full shadow-2xl font-classical tracking-wider";
+                    }
+                } else {
+                    hud.style.opacity = '0';
+                    hud.classList.add('pointer-events-none');
+                }
+            };
+            
+            // 2. Pose matched success callback (Triggered after holding pose for 1.5 seconds)
+            mocap.onPoseSuccess = function(poseKey) {
+                console.log(`[Exhibit Hub] Pose matched successfully! Triggering performance for: ${poseKey}`);
+                
+                // Play synthesiser chime
+                playChimeEffect();
+                
+                // Hide HUD
+                document.getElementById('poseMatchHUD').style.opacity = '0';
+                
+                // Trigger Three.js dance state (only if running Three.js)
+                if (avatar && typeof avatar.triggerDance === 'function') {
+                    avatar.triggerDance(poseKey);
+                }
+                
+                // Automatically start pre-rendered dance video awakening
+                startDanceAwakening();
+            };
+        }
+
+
+
+        function updateSilhouetteSVG(poseKey) {
+            const svgContainer = document.getElementById('poseSilhouetteSVG');
+            if (!svgContainer) return;
+            
+            let pathContent = '';
+            
+            // Standard head, spine, and base drawings
+            const headAndSpine = `
+                <!-- Head & Bun -->
+                <circle cx="160" cy="55" r="13" stroke="#d4af37" stroke-width="2.5" fill="none" />
+                <ellipse cx="160" cy="38" rx="7" ry="5" stroke="#d4af37" stroke-width="2.5" fill="none" />
+                <!-- Spine -->
+                <path d="M160,68 L160,170" stroke="#d4af37" stroke-width="2.5" fill="none" />
+            `;
+            
+            if (poseKey === 'optimal_1') {
+                pathContent = headAndSpine + `
+                    <!-- Left Arm (Horizontal) -->
+                    <path d="M148,80 L70,80" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                    <!-- Right Arm (Horizontal) -->
+                    <path d="M172,80 L250,80" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                    <!-- Standing Legs -->
+                    <path d="M145,170 L135,290" stroke="#d4af37" stroke-width="2.5" fill="none" />
+                    <path d="M175,170 L185,290" stroke="#d4af37" stroke-width="2.5" fill="none" />
+                    <!-- Skirt Outline (Muted) -->
+                    <path d="M145,170 Q115,230 95,290 L225,290 Q205,230 175,170 Z" stroke="#d4af37" stroke-width="1.5" stroke-dasharray="3,3" fill="none" opacity="0.4" />
+                `;
+            } else if (poseKey === 'optimal_2') {
+                pathContent = headAndSpine + `
+                    <!-- Left Arm (Raised High) -->
+                    <path d="M148,80 Q110,50 90,25" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                    <!-- Right Arm (Relaxed Down) -->
+                    <path d="M172,80 Q190,120 185,145" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                    <!-- Standing Legs -->
+                    <path d="M145,170 L135,290" stroke="#d4af37" stroke-width="2.5" fill="none" />
+                    <path d="M175,170 L185,290" stroke="#d4af37" stroke-width="2.5" fill="none" />
+                `;
+            } else if (poseKey === 'optimal_3') {
+                pathContent = headAndSpine + `
+                    <!-- Left Arm (Raised 45 degrees away from waist) -->
+                    <path d="M148,80 L100,130" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                    <!-- Right Arm (Bent to Chest) -->
+                    <path d="M172,80 L195,105 L160,105" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                    <!-- Standing Legs (Upper Body Only) -->
+                    <path d="M145,170 L135,290" stroke="#d4af37" stroke-width="2.5" fill="none" />
+                    <path d="M175,170 L185,290" stroke="#d4af37" stroke-width="2.5" fill="none" />
+                `;
+            } else if (poseKey === 'optimal_4') {
+                pathContent = headAndSpine + `
+                    <!-- Left Arm (Raised High above shoulder) -->
+                    <path d="M148,80 Q110,50 90,25" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                    <!-- Right Arm (Raised 30 degrees away from body) -->
+                    <path d="M172,80 L205,140" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                    <!-- Standing Legs (Upper Body Only) -->
+                    <path d="M145,170 L135,290" stroke="#d4af37" stroke-width="2.5" fill="none" />
+                    <path d="M175,170 L185,290" stroke="#d4af37" stroke-width="2.5" fill="none" />
+                    <!-- Ribbon overlay showing flying dynamic -->
+                    <path d="M110,135 Q70,175 100,230 Q130,285 240,285" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="4,4" fill="none" />
+                `;
+            }
+            svgContainer.innerHTML = pathContent;
+        }
+
+        // --- NEW: Synthetic Web Audio Chime Player ---
+        function playChimeEffect() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5 (Do)
+                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5 (La)
+                osc.frequency.exponentialRampToValueAtTime(1318.51, ctx.currentTime + 0.3); // E6 (Mi)
+                
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + 0.55);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.6);
+            } catch(e) {
+                console.warn("Failed to play Web Audio chime:", e);
+            }
+        }
+
+        // --- NEW: Tester Skip Challenge Helper ---
+        function skipPoseChallenge() {
+            const activePose = (mocap && mocap.activePoseKey) || window.currentActivePoseKey || 'lute';
+            console.log(`[Exhibit Hub] User bypassed challenge. Triggering instantly: ${activePose}`);
+            
+            // 1. Play synthesiser chime
+            playChimeEffect();
+            
+            // 2. Hide HUD
+            const matchHUD = document.getElementById('poseMatchHUD');
+            if (matchHUD) matchHUD.style.opacity = '0';
+            
+            // 3. Disable trigger mode in mocap engine temporarily
+            if (mocap) {
+                mocap.isPoseTriggerMode = false;
+            }
+            
+            // 4. Trigger Three.js state (only if running Three.js)
+            if (avatar && typeof avatar.triggerDance === 'function') {
+                avatar.triggerDance(activePose);
+            }
+            
+            // 5. Start the pre-rendered video overlay awakening flow
+            startDanceAwakening();
+        }
+
+        // --- MO CAP & VIDEO EXPORT TRIGGERS ---
+
+        // --- NEW: Pre-rendered Cinematic Dance Video Mapping ---
+        function startDanceAwakening() {
+            // 1. Resolve the pre-rendered video path based on matched figurine!
+            const figurineId = window.matchedFigurineId || 'optimal_1';
+            const figurine = FIGURINES_DB[figurineId];
+            if (!figurine) return;
+            
+            const videoPath = figurine.video;
+            console.log(`[Exhibit Hub] Awakening Figurine: playing cinema video: ${videoPath} for Figurine: ${figurineId}`);
+            
+            // 2. Configure and play the overlay video player
+            const videoPlayer = document.getElementById('renderVideoPlayer');
+            if (videoPlayer) {
+                videoPlayer.src = videoPath;
+                videoPlayer.classList.remove('hidden');
+                videoPlayer.play();
+                
+                // Catch video load/play errors (e.g. file missing optimal_4.MOV)
+                videoPlayer.onerror = function() {
+                    console.error(`[Exhibit Hub] Failed to load video at: ${videoPath}. File missing or corrupt.`);
+                    videoPlayer.classList.add('hidden');
+                    showToast(`✨ 【${figurine.name}】唤醒乐舞视频正在快马加鞭制作中，敬请期待！`, "info");
+                    stopDanceAwakening();
+                };
+                
+                // When the video naturally ends, automatically reset the exhibit!
+                videoPlayer.onended = function() {
+                    console.log("[Exhibit Hub] Pre-rendered dance video ended naturally.");
+                    stopDanceAwakening();
+                };
+            }
+            
+            // 3. Dimm HUD/Pose selector elements during the performance
+            const poseContainer = document.getElementById('poseSelectorContainer');
+            if (poseContainer) {
+                poseContainer.classList.add('opacity-40', 'pointer-events-none');
+            }
+            // Silhouette opacity update removed to keep it permanently hidden
+            
+            // 4. Update status display
+            const trackingStatus = document.getElementById('trackingStatus');
+            if (trackingStatus) {
+                trackingStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-error animate-ping mr-1"></span> ✨ 乐舞金身已唤醒！正在欣赏【${figurine.name}】古典舞...`;
+            }
+        }
+
+        function stopDanceAwakening() {
+            // 1. Check if the video was actively playing before we hide it
+            const videoPlayer = document.getElementById('renderVideoPlayer');
+            const wasPlaying = videoPlayer && !videoPlayer.classList.contains('hidden');
+            
+            if (videoPlayer) {
+                videoPlayer.pause();
+                videoPlayer.classList.add('hidden');
+            }
+            
+            // Kickstart webcam playback in case the browser paused/throttled it during video overlay!
+            const webcamElement = document.getElementById('webcam');
+            if (webcamElement && webcamElement.paused) {
+                console.log("[Orchestrator] Webcam was paused or throttled by browser. Kickstarting playback...");
+                webcamElement.play().catch(e => console.warn("Failed to auto-resume webcam playback:", e));
+            }
+            
+            // 2. Restore UI elements
+            const poseContainer = document.getElementById('poseSelectorContainer');
+            if (poseContainer) {
+                poseContainer.classList.remove('opacity-40', 'pointer-events-none');
+            }
+            // Silhouette opacity update removed to keep it permanently hidden
+            
+            // 3. Reset status display
+            const trackingStatus = document.getElementById('trackingStatus');
+            if (trackingStatus) {
+                trackingStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-success mr-1"></span> 动作捕捉就绪`;
+            }
+            
+            // Celebrate state cleaned up silently to keep design immersive
+            
+            // 5. Re-enable pose trigger mode and forcefully revive the camera helper!
+            if (mocap) {
+                mocap.isPoseTriggerMode = true;
+                mocap.matchStartTime = null; // Force reset hold timer
+                mocap.restartCamera(); // Revive the MediaPipe frame loop!
+            }
+        }
+    </script>
+
+    <!-- Beautiful Toast Notification Container -->
+    <div id="toastContainer" class="toast toast-bottom toast-end z-[999] p-4"></div>
+
+    <!-- Floating On-Screen Debug Logger -->
+    <div id="onScreenLogger" class="hidden absolute bottom-20 left-4 z-[9999] w-96 h-48 bg-black bg-opacity-90 border border-white/20 rounded-lg p-3 text-[10px] font-mono text-green-400 overflow-hidden shadow-2xl flex flex-col">
+        <div class="flex justify-between border-b border-white/10 pb-1.5 mb-1.5 shrink-0">
+            <span class="text-white font-semibold flex items-center gap-1">🔍 穿越镜实时调试台 (Debug Logs)</span>
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('logConsoleLines').innerHTML = ''" class="text-warning hover:text-warning-focus">清空</button>
+                <button onclick="document.getElementById('onScreenLogger').classList.add('hidden')" class="text-red-400 hover:text-red-300">隐藏</button>
+            </div>
+        </div>
+        <div id="logConsoleLines" class="flex-1 overflow-y-auto flex flex-col gap-0.5 pr-1 select-text"></div>
+    </div>
+
+</body>
+</html>
