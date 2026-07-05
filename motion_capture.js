@@ -18,15 +18,33 @@ class MotionCaptureEngine {
         this.cameraHelper = null;
         this.isTracking = false;
 
-        // --- NEW: Pose-Triggered Performance Config ---
-        this.isPoseTriggerMode = true;
-        this.activePoseKey = 'optimal_1'; // Default start pose
+        // --- NEW: Pose-Triggered Performance Config (Disabled by default for new flow) ---
+        this.isPoseTriggerMode = false; 
+        this.activePoseKey = 'optimal_1';
         this.matchStartTime = null;
-        this.requiredHoldTime = 1500;  // Must hold pose for 1.5 seconds to trigger
+        this.requiredHoldTime = 1500;
+        
+        // --- NEW: Interaction & Gesture Detection States ---
+        this.spinState = 0;           // 0: Front, 1: Side, 2: Back, 3: Side 2
+        this.spinTimer = 0;
+        this.maxShoulderWidth = 0.15; // Rolling self-calibrating maximum
+        this.baseOrder = null;        // Baseline left-to-right shoulder order
+        
+        // --- NEW: Curtain Pull gesture states ---
+        this.smoothedCurtainRatio = 1.0; // Smoothed hands horizontal distance ratio
+        this.curtainPullTimer = 0;
+        
+        this.prevLandmarks = {};      // For velocity/displacement tracking
+        this.movementIntensity = 0.5; // Smooth rolling movement velocity
+        this.stillStartTime = null;   // Timer for stillness
+        this.isStill = false;         // Active state flag
+        
+        this.absenceStartTime = null; // Timer for user leaving frame
+        this.isAbsent = false;         // Absence state flag
         
         // Callbacks to communicate with index.html frontend
-        this.onPoseScore = null;   // function(score)
-        this.onPoseSuccess = null; // function(poseKey)
+        this.onPoseScore = null;   
+        this.onPoseSuccess = null; 
 
         // 🏺 大唐时空幻影镜——骨骼角度定义数据库
         this.targetPoses = {
@@ -213,8 +231,28 @@ class MotionCaptureEngine {
             }
             if (this.onPoseScore) this.onPoseScore(0); // reset score
             this.matchStartTime = null; // reset timer
+            
+            // Handle user absence (leaving frame counts as stillness)
+            if (!this.isPoseTriggerMode) {
+                const now = Date.now();
+                if (!this.absenceStartTime) {
+                    this.absenceStartTime = now;
+                } else if (now - this.absenceStartTime > 1500) { // 1.5 seconds absence
+                    if (!this.isAbsent) {
+                        this.isAbsent = true;
+                        console.log("[Mocap Engine] User is ABSENT (no landmarks)");
+                        if (typeof window.onUserStill === 'function') {
+                            window.onUserStill(true); // User is absent
+                        }
+                    }
+                }
+            }
             return;
         }
+        
+        // Reset absence on active detection
+        this.absenceStartTime = null;
+        this.isAbsent = false;
         
         const landmarks = (results.poseWorldLandmarks && results.poseWorldLandmarks.length >= 29) 
                           ? results.poseWorldLandmarks 
@@ -228,6 +266,9 @@ class MotionCaptureEngine {
             }
             this.retargetSkeletalBones(landmarks);
         }
+        
+        // Track interactive gestures (spins, stillness) in real-time on every frame
+        this.updateInteractiveStates(landmarks);
     }
     
     /**
@@ -508,6 +549,161 @@ class MotionCaptureEngine {
 
         } catch (e) {
             console.error("Error during pose matching evaluation:", e);
+        }
+    }
+
+    /**
+     * Stateful Interaction Engine:
+     * Detects 360-degree spins via shoulder crossover,
+     * and detects stillness via rolling average landmark displacement.
+     */
+    updateInteractiveStates(lm) {
+        if (!lm) return;
+
+        const now = Date.now();
+        const pL = lm[11]; // Left Shoulder
+        const pR = lm[12]; // Right Shoulder
+
+        // ================= 1. 360-DEGREE SPIN DETECTION =================
+        if (pL && pR) {
+            const currentWidth = Math.abs(pL.x - pR.x);
+            
+            // Update rolling maximum shoulder width (slow decay, fast growth adaptation)
+            if (currentWidth > this.maxShoulderWidth) {
+                this.maxShoulderWidth = currentWidth;
+            } else {
+                // Slowly decay to adapt if user moves further away from the camera
+                this.maxShoulderWidth = this.maxShoulderWidth * 0.998 + currentWidth * 0.002;
+            }
+
+            const relativeWidth = currentWidth / this.maxShoulderWidth;
+            const currentOrder = pL.x > pR.x; // True if Left is to the right of Right (camera mirrored)
+
+            if (this.baseOrder === null) {
+                this.baseOrder = currentOrder; // Calibrate baseline on first frame
+            }
+
+            const isSwapped = currentOrder !== this.baseOrder;
+
+            // Spin State Machine
+            if (this.spinState === 0) {
+                // State 0 -> 1: User starts turning sideways (shoulder width compresses)
+                if (relativeWidth < 0.38) {
+                    this.spinState = 1;
+                    this.spinTimer = now;
+                }
+            } else {
+                // Timeout Guard: If a full spin takes longer than 2.5 seconds, reset to State 0
+                if (now - this.spinTimer > 2500) {
+                    this.spinState = 0;
+                    this.baseOrder = currentOrder; // Recalibrate order
+                } else {
+                    if (this.spinState === 1) {
+                        // State 1 -> 2: User faces backward (shoulders widen, order is swapped)
+                        if (relativeWidth > 0.58 && isSwapped) {
+                            this.spinState = 2;
+                        }
+                    } else if (this.spinState === 2) {
+                        // State 2 -> 3: User turns sideways again on the way back (width compresses)
+                        if (relativeWidth < 0.38) {
+                            this.spinState = 3;
+                        }
+                    } else if (this.spinState === 3) {
+                        // State 3 -> 0 (Complete): User faces front again (width widens, order restored)
+                        if (relativeWidth > 0.58 && !isSwapped) {
+                            this.spinState = 0; // Reset
+                            console.log(`[Mocap Engine] SPIN DETECTED! Duration: ${now - this.spinTimer}ms`);
+                            
+                            // Trigger global window callback
+                            if (typeof window.onUserSpin === 'function') {
+                                window.onUserSpin();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ================= 3. HANDS TOGETHER (CURTAIN PULL) DETECTION =================
+        if (pL && pR && lm[15] && lm[16]) {
+            const pWristL = lm[15];
+            const pWristR = lm[16];
+            
+            const shoulderDist = Math.abs(pL.x - pR.x);
+            const wristDist = Math.abs(pWristL.x - pWristR.x);
+            const ratio = wristDist / (shoulderDist || 0.1);
+            
+            // Smooth the ratio to filter out camera tracking noise/jitter
+            this.smoothedCurtainRatio = this.smoothedCurtainRatio * 0.82 + ratio * 0.18;
+            
+            // Wrists must be above hip line (dynamic threshold matching screen & metric coords)
+            const hipY = (lm[23] && lm[24]) ? (lm[23].y + lm[24].y) / 2 : 0.65;
+            const handsRaised = pWristL.y < hipY && pWristR.y < hipY;
+            
+            if (!window.debugCurtainCounter) window.debugCurtainCounter = 0;
+            window.debugCurtainCounter++;
+            if (window.debugCurtainCounter % 30 === 0) {
+                console.log(`[Curtain Pull Debug] rawRatio: ${ratio.toFixed(2)}, smoothedRatio: ${this.smoothedCurtainRatio.toFixed(2)} (threshold: 0.55), handsRaised: ${handsRaised}`);
+            }
+
+            if (handsRaised && this.smoothedCurtainRatio < 0.55) {
+                this.smoothedCurtainRatio = 1.5; // Reset to higher value to prevent repeat triggers
+                console.log("[Mocap Engine] HANDS TOGETHER (CURTAIN PULL) DETECTED via smoothed threshold!");
+                if (typeof window.onUserCurtainPull === 'function') {
+                    window.onUserCurtainPull();
+                }
+            }
+        }
+
+        // ================= 2. STILLNESS & ACTIVITY DETECTION =================
+        let totalDisplacement = 0;
+        const trackedIndices = [11, 12, 13, 14, 15, 16, 23, 24]; // Shoulders, elbows, wrists, hips
+        let validPoints = 0;
+
+        trackedIndices.forEach(idx => {
+            const p = lm[idx];
+            if (p) {
+                const currentPos = new THREE.Vector3(p.x, p.y, p.z);
+                if (this.prevLandmarks[idx]) {
+                    totalDisplacement += currentPos.distanceTo(this.prevLandmarks[idx]);
+                    validPoints++;
+                }
+                this.prevLandmarks[idx] = currentPos;
+            }
+        });
+
+        if (validPoints > 0) {
+            const avgDisplacement = totalDisplacement / validPoints;
+            
+            // Smooth the velocity using a rolling average filter
+            this.movementIntensity = this.movementIntensity * 0.92 + avgDisplacement * 0.08;
+            
+            // Threshold for stillness (tuned to filter out camera pixel jitter)
+            const STILL_THRESHOLD = 0.012; 
+            
+            if (this.movementIntensity < STILL_THRESHOLD) {
+                if (!this.stillStartTime) {
+                    this.stillStartTime = now;
+                } else if (now - this.stillStartTime > 1600) { // Still for 1.6 seconds
+                    if (!this.isStill) {
+                        this.isStill = true;
+                        console.log("[Mocap Engine] User is STILL");
+                        if (typeof window.onUserStill === 'function') {
+                            window.onUserStill(false); // User is just still
+                        }
+                    }
+                }
+            } else {
+                // User is active/moving
+                this.stillStartTime = null;
+                if (this.isStill) {
+                    this.isStill = false;
+                    console.log("[Mocap Engine] User is ACTIVE");
+                    if (typeof window.onUserActive === 'function') {
+                        window.onUserActive();
+                    }
+                }
+            }
         }
     }
 

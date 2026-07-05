@@ -16,18 +16,33 @@ class AvatarEngine {
         this.camera = null;
         this.renderer = null;
         this.controls = null;
+        this.floorMesh = null; // Store floor to exclude from material swaps
         
         // Joint and Bone Map
         this.joints = {}; // Flat map for quick rotation updates
         this.skeletonRoot = null; // Reference to hips (root)
         
         // --- NEW: State-based Procedural Animation System ---
-        this.animationState = 'IDLE'; // 'IDLE' | 'DANCE_SLEEVE' | 'DANCE_LUTE' | 'DANCE_POINTER'
-        this.danceStartTime = 0;
-        this.danceDuration = 12000;  // Pre-animated dance runs for 12 seconds, then returns to IDLE
+        this.animationState = 'STIFF_STATUE'; // 'STIFF_STATUE' | 'INTRO' | 'IDLE' | 'DANCE_SLEEVE' | 'DANCE_LUTE' | 'DANCE_POINTER' | 'OUTRO'
+        this.animationStartTime = 0;
+        this.animationDuration = 3000;  // Intro/Outro transitions run for 3 seconds
+        
+        // Material map for restoration
+        this.originalMaterials = new Map();
         
         this.initEnvironment();
         this.buildMannequin();
+        
+        // Save original materials of all puppet meshes
+        this.scene.traverse((node) => {
+            if (node.isMesh && node !== this.floorMesh) {
+                this.originalMaterials.set(node, node.material);
+            }
+        });
+        
+        // Initialize materials
+        this.initMuseumMaterials();
+        
         this.animate();
         
         // Handle resizing
@@ -71,14 +86,14 @@ class AvatarEngine {
         // 5. Floor/Ground (For shadows and spatial depth)
         const floorGeo = new THREE.PlaneGeometry(10, 10);
         const floorMat = new THREE.MeshStandardMaterial({ 
-            color: 0x222222, 
-            roughness: 0.8, 
-            metalness: 0.2 
+            color: 0x181815, // Darker museum floor
+            roughness: 0.9, 
+            metalness: 0.1 
         });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.rotation.x = -Math.PI / 2;
-        floor.receiveShadow = true;
-        this.scene.add(floor);
+        this.floorMesh = new THREE.Mesh(floorGeo, floorMat);
+        this.floorMesh.rotation.x = -Math.PI / 2;
+        this.floorMesh.receiveShadow = true;
+        this.scene.add(this.floorMesh);
         
         // 6. Orbit Controls (allow user to rotate avatar viewpoint)
         if (typeof THREE.OrbitControls !== 'undefined') {
@@ -924,20 +939,32 @@ class AvatarEngine {
         const now = Date.now();
         const time = now * 0.001; // Current time in seconds
 
-        // 1. Check if the active dance has finished and needs to return to IDLE
-        if (this.animationState !== 'IDLE' && this.danceStartTime > 0) {
-            const elapsed = now - this.danceStartTime;
-            if (elapsed >= this.danceDuration) {
-                this.resetToIdle();
-                
-                // Fire window callback to let the frontend know the dance is complete!
-                if (typeof window.onDanceComplete === 'function') {
-                    window.onDanceComplete();
+        // 2. Check if active animation state has finished
+        if (this.animationState === 'INTRO' && this.animationStartTime > 0) {
+            const elapsed = now - this.animationStartTime;
+            if (elapsed >= this.animationDuration) {
+                // Intro complete, transition to IDLE or active mimicking
+                this.animationState = 'IDLE';
+                this.animationStartTime = 0;
+                console.log("[AvatarEngine] Intro animation complete. Transitioned to IDLE.");
+                if (typeof window.onIntroComplete === 'function') {
+                    window.onIntroComplete();
+                }
+            }
+        } else if (this.animationState === 'OUTRO' && this.animationStartTime > 0) {
+            const elapsed = now - this.animationStartTime;
+            if (elapsed >= this.animationDuration) {
+                // Outro complete, freeze as statue
+                this.animationState = 'STIFF_STATUE';
+                this.animationStartTime = 0;
+                console.log("[AvatarEngine] Outro animation complete. Frozen as statue.");
+                if (typeof window.onOutroComplete === 'function') {
+                    window.onOutroComplete();
                 }
             }
         }
 
-        // 2. Initialize target rotations for all joints to Identity (no rotation)
+        // 3. Initialize target rotations for all joints to Identity (no rotation)
         const targets = {};
         for (let name in this.joints) {
             targets[name] = new THREE.Quaternion(); // Identity
@@ -947,8 +974,37 @@ class AvatarEngine {
         let hipsTargetY = 1.0;
         let hipsTargetX = 0.0;
 
-        // 3. Compute target orientations based on the active state
-        if (this.animationState === 'IDLE') {
+        // 4. Compute target orientations based on the active state
+        if (this.animationState === 'STIFF_STATUE') {
+            // === STIFF_STATUE: Completely frozen, rigid museum pose ===
+            hipsTargetY = 1.0;
+            hipsTargetX = 0.0;
+            // All joints remain at Identity (T-pose/straight down)
+            targets["shoulderL"].setFromEuler(new THREE.Euler(0, 0, -Math.PI / 2.1));
+            targets["shoulderR"].setFromEuler(new THREE.Euler(0, 0, Math.PI / 2.1));
+
+        } else if (this.animationState === 'INTRO') {
+            // === INTRO: Smoothly morphing from statue to the dance starting pose ===
+            const elapsed = now - this.animationStartTime;
+            const progress = Math.min(1.0, elapsed / this.animationDuration);
+            // Ease-in-out cubical blend
+            const t = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+            // Target: Dance Starting Pose (depends on matched figurine)
+            const startingPose = this.getDanceStartingPoseRotations();
+            
+            // Interpolate hips
+            hipsTargetY = THREE.MathUtils.lerp(1.0, startingPose.hipsY, t);
+            hipsTargetX = THREE.MathUtils.lerp(0.0, startingPose.hipsX, t);
+
+            // Interpolate joints
+            for (let name in this.joints) {
+                if (startingPose.joints[name]) {
+                    targets[name].copy(startingPose.joints[name]);
+                }
+            }
+
+        } else if (this.animationState === 'IDLE') {
             // === IDLE: Gentle Breathing & Swaying ===
             hipsTargetY = 1.0 + Math.sin(time * 1.5) * 0.012; // breathing
             
@@ -956,11 +1012,9 @@ class AvatarEngine {
             targets["spine"].setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.sin(time * 0.8) * 0.02);
             
             // Arms relaxed near sides
-            // Left arm
             targets["shoulderL"].setFromEuler(new THREE.Euler(0, 0, -Math.PI / 2.3 + Math.sin(time * 1.0) * 0.03));
             targets["elbowL"].setFromEuler(new THREE.Euler(0, -Math.PI / 4, 0));
             
-            // Right arm
             targets["shoulderR"].setFromEuler(new THREE.Euler(0, 0, Math.PI / 2.3 - Math.sin(time * 1.0) * 0.03));
             targets["elbowR"].setFromEuler(new THREE.Euler(0, Math.PI / 4, 0));
 
@@ -969,14 +1023,12 @@ class AvatarEngine {
             hipsTargetY = 1.0 + Math.sin(time * 2.8) * 0.03; // bouncing rhythm
             hipsTargetX = Math.sin(time * 1.4) * 0.06;
             
-            // Spine figure-8 sway
             targets["spine"].setFromEuler(new THREE.Euler(
                 Math.cos(time * 1.4) * 0.12,
                 Math.sin(time * 0.7) * 0.18,
                 Math.sin(time * 1.4) * 0.15
             ));
             
-            // Dynamic sleeve waving (Large movements)
             const waveL = -Math.PI / 3.2 + Math.sin(time * 2.5) * 0.45;
             const swingL = Math.cos(time * 1.25) * 0.35;
             targets["shoulderL"].setFromEuler(new THREE.Euler(swingL, 0, waveL));
@@ -994,27 +1046,19 @@ class AvatarEngine {
             hipsTargetY = 0.96 + Math.sin(time * 2.0) * 0.015;
             hipsTargetX = Math.sin(time * 2.0) * 0.08; // hip sway
             
-            // Spine leaning S-curve
             targets["spine"].setFromEuler(new THREE.Euler(
                 0.05,
                 Math.cos(time * 1.0) * 0.15,
                 -0.12 + Math.sin(time * 2.0) * 0.08
             ));
 
-            // Right arm playing lute behind head
             targets["shoulderR"].setFromEuler(new THREE.Euler(
-                Math.PI / 1.6, // rotated backward/upward
+                Math.PI / 1.6,
                 0,
                 Math.PI / 3.5 + Math.sin(time * 3.5) * 0.08
             ));
-            // Strumming motion at right elbow
-            targets["elbowR"].setFromEuler(new THREE.Euler(
-                0,
-                Math.PI / 2.2 + Math.cos(time * 4.5) * 0.25,
-                0
-            ));
+            targets["elbowR"].setFromEuler(new THREE.Euler(0, Math.PI / 2.2 + Math.cos(time * 4.5) * 0.25, 0));
 
-            // Left arm extended out holding lute neck
             targets["shoulderL"].setFromEuler(new THREE.Euler(-Math.PI / 4, 0, -Math.PI / 2.5));
             targets["elbowL"].setFromEuler(new THREE.Euler(0, -Math.PI / 6 + Math.sin(time * 2) * 0.1, 0));
 
@@ -1022,17 +1066,14 @@ class AvatarEngine {
             // === DANCE_POINTER: Elegant Flute Playing Sway ===
             hipsTargetY = 1.0 + Math.sin(time * 1.4) * 0.008;
             
-            // Soft sway
             targets["spine"].setFromEuler(new THREE.Euler(
                 0,
                 Math.sin(time * 0.7) * 0.10,
                 Math.sin(time * 1.4) * 0.08
             ));
 
-            // Both hands positioned in front of face to hold and play the flute!
             const fluteBreath = Math.sin(time * 1.8) * 0.03;
             
-            // Left hand
             targets["shoulderL"].setFromEuler(new THREE.Euler(
                 Math.PI / 3.4,
                 Math.PI / 6.5,
@@ -1040,17 +1081,62 @@ class AvatarEngine {
             ));
             targets["elbowL"].setFromEuler(new THREE.Euler(0, -Math.PI / 2.4, 0));
 
-            // Right hand
             targets["shoulderR"].setFromEuler(new THREE.Euler(
                 Math.PI / 3.4,
                 -Math.PI / 6.5,
                 Math.PI / 4.2 + fluteBreath
             ));
             targets["elbowR"].setFromEuler(new THREE.Euler(0, Math.PI / 2.4, 0));
+
+        } else if (this.animationState === 'OUTRO') {
+            // === OUTRO: Smoothly bowing (谢幕) ===
+            const elapsed = now - this.animationStartTime;
+            const progress = Math.min(1.0, elapsed / this.animationDuration);
+            const t = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+            // Target: Elegant Tang Dynasty Bow
+            hipsTargetY = THREE.MathUtils.lerp(1.0, 0.82, t); // Lower hips
+            hipsTargetX = 0.0;
+
+            // Spine leans forward
+            targets["spine"].setFromEuler(new THREE.Euler(
+                THREE.MathUtils.lerp(0, Math.PI / 6, t), // Lean 30 degrees forward
+                0,
+                0
+            ));
+            
+            // Neck looks slightly down
+            targets["head"].setFromEuler(new THREE.Euler(
+                THREE.MathUtils.lerp(0, -Math.PI / 10, t),
+                0,
+                0
+            ));
+
+            // Hands folded gracefully in front of chest (Gongshou gesture)
+            targets["shoulderL"].setFromEuler(new THREE.Euler(
+                THREE.MathUtils.lerp(-Math.PI / 2.3, Math.PI / 4, t),
+                THREE.MathUtils.lerp(0, Math.PI / 6, t),
+                THREE.MathUtils.lerp(-Math.PI / 4, -Math.PI / 4, t)
+            ));
+            targets["elbowL"].setFromEuler(new THREE.Euler(0, THREE.MathUtils.lerp(-Math.PI / 4, -Math.PI / 2, t), 0));
+
+            targets["shoulderR"].setFromEuler(new THREE.Euler(
+                THREE.MathUtils.lerp(Math.PI / 2.3, Math.PI / 4, t),
+                THREE.MathUtils.lerp(0, -Math.PI / 6, t),
+                THREE.MathUtils.lerp(Math.PI / 4, Math.PI / 4, t)
+            ));
+            targets["elbowR"].setFromEuler(new THREE.Euler(0, THREE.MathUtils.lerp(Math.PI / 4, Math.PI / 2, t), 0));
         }
 
-        // 4. Apply calculated target rotations smoothly to Three.js joints using Slerp!
-        const lerpFactor = this.animationState === 'IDLE' ? 0.05 : 0.08; // slightly faster transitions for dancing
+        // 5. Apply calculated target rotations smoothly to Three.js joints using Slerp!
+        // We use a slower lerp during intro/outro transitions to make them extremely majestic
+        let lerpFactor = 0.05;
+        if (this.animationState === 'INTRO' || this.animationState === 'OUTRO') {
+            lerpFactor = 0.03; // Ultra-smooth cinematic transition
+        } else if (this.animationState !== 'IDLE') {
+            lerpFactor = 0.08; // Snappy dance response
+        }
+        
         for (let name in this.joints) {
             if (targets[name]) {
                 this.joints[name].quaternion.slerp(targets[name], lerpFactor);
@@ -1062,6 +1148,125 @@ class AvatarEngine {
             this.skeletonRoot.position.y = THREE.MathUtils.lerp(this.skeletonRoot.position.y, hipsTargetY, 0.08);
             this.skeletonRoot.position.x = THREE.MathUtils.lerp(this.skeletonRoot.position.x, hipsTargetX, 0.08);
         }
+    }
+
+    /**
+     * Initialize the procedural museum materials (Blue-and-White, Gilded Gold)
+     */
+    initMuseumMaterials() {
+        // 1. Blue and White Porcelain (青花瓷): Ultra-glossy white base with cobalt blue shadow highlights
+        this.blueWhiteMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            emissive: 0x001133, // Subtle deep cobalt glow in shadow crevices!
+            roughness: 0.02,
+            metalness: 0.0,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.01
+        });
+        
+        // 2. Gilded Gold (古法描金): Antique gold leaf, fully metallic, rich specular highlights
+        this.goldMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xd4af37, // Elegant Sancai Gold
+            roughness: 0.08,
+            metalness: 1.0, // Solid metallic gold!
+            clearcoat: 0.6,
+            clearcoatRoughness: 0.08
+        });
+    }
+
+    /**
+     * Traverses the 3D hierarchy and swaps materials of all puppet meshes
+     * @param {string} type - 'sancai' | 'blue_white' | 'gold'
+     */
+    setAvatarMaterial(type) {
+        console.log(`[AvatarEngine] Swapping museum material to: ${type}`);
+        
+        this.scene.traverse((node) => {
+            if (node.isMesh && node !== this.floorMesh) {
+                if (type === 'sancai') {
+                    // Restore original colorful Sancai glazes
+                    if (this.originalMaterials.has(node)) {
+                        node.material = this.originalMaterials.get(node);
+                    }
+                } else if (type === 'blue_white') {
+                    // Apply unified Blue and White Porcelain glaze
+                    node.material = this.blueWhiteMaterial;
+                } else if (type === 'gold') {
+                    // Apply unified Gilded Gold metallic glaze
+                    node.material = this.goldMaterial;
+                }
+            }
+        });
+    }
+
+    /**
+     * Triggers the 3-second cinematic intro animation (Stiff statue -> Dance starting pose)
+     */
+    triggerIntro() {
+        console.log("[AvatarEngine] Triggering INTRO animation...");
+        this.animationState = 'INTRO';
+        this.animationStartTime = Date.now();
+    }
+
+    /**
+     * Triggers the 3-second cinematic outro animation (Dance pose -> Gracious bow -> Freeze)
+     */
+    triggerOutro() {
+        console.log("[AvatarEngine] Triggering OUTRO animation...");
+        this.animationState = 'OUTRO';
+        this.animationStartTime = Date.now();
+    }
+
+    /**
+     * Helper to get the target joint rotations for the starting pose of the matched figurine
+     */
+    getDanceStartingPoseRotations() {
+        const pose = {
+            hipsY: 1.0,
+            hipsX: 0.0,
+            joints: {}
+        };
+
+        // Helper to initialize all joints to Identity
+        for (let name in this.joints) {
+            pose.joints[name] = new THREE.Quaternion();
+        }
+
+        const fid = (this.currentFigurineId || "").toLowerCase();
+
+        if (fid === "optimal_1") {
+            // Starting pose: Holding flute in front of face
+            pose.hipsY = 1.0;
+            const fluteBreath = 0;
+            pose.joints["shoulderL"].setFromEuler(new THREE.Euler(Math.PI / 3.4, Math.PI / 6.5, -Math.PI / 4.2 + fluteBreath));
+            pose.joints["elbowL"].setFromEuler(new THREE.Euler(0, -Math.PI / 2.4, 0));
+            pose.joints["shoulderR"].setFromEuler(new THREE.Euler(Math.PI / 3.4, -Math.PI / 6.5, Math.PI / 4.2 + fluteBreath));
+            pose.joints["elbowR"].setFromEuler(new THREE.Euler(0, Math.PI / 2.4, 0));
+
+        } else if (fid === "optimal_2") {
+            // Starting pose: sleeves draped, one arm slightly raised
+            pose.joints["shoulderL"].setFromEuler(new THREE.Euler(0, 0, -Math.PI / 3));
+            pose.joints["elbowL"].setFromEuler(new THREE.Euler(0, -Math.PI / 6, 0));
+            pose.joints["shoulderR"].setFromEuler(new THREE.Euler(0, 0, Math.PI / 1.8));
+            pose.joints["elbowR"].setFromEuler(new THREE.Euler(0, Math.PI / 3, 0));
+
+        } else if (fid === "optimal_3") {
+            // Starting pose: Lute held behind head (S-curve)
+            pose.hipsY = 0.96;
+            pose.hipsX = 0.08;
+            pose.joints["spine"].setFromEuler(new THREE.Euler(0.05, 0.15, -0.12));
+            pose.joints["shoulderR"].setFromEuler(new THREE.Euler(Math.PI / 1.6, 0, Math.PI / 3.5));
+            pose.joints["elbowR"].setFromEuler(new THREE.Euler(0, Math.PI / 2.2, 0));
+            pose.joints["shoulderL"].setFromEuler(new THREE.Euler(-Math.PI / 4, 0, -Math.PI / 2.5));
+            pose.joints["elbowL"].setFromEuler(new THREE.Euler(0, -Math.PI / 6, 0));
+
+        } else {
+            // Default starting pose (relaxed T-pose)
+            pose.joints["shoulderL"].setFromEuler(new THREE.Euler(0, 0, -Math.PI / 2.3));
+            pose.joints["shoulderR"].setFromEuler(new THREE.Euler(0, 0, Math.PI / 2.3));
+        }
+
+        return pose;
     }
 
     /**
