@@ -1088,7 +1088,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            }, 18000);
+            }, 45000);
 
             if (!response.ok) throw new Error(`Ollama Moondream error: ${response.status}`);
 
