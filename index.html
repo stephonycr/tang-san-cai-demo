@@ -1073,7 +1073,7 @@
             const prompt = "Analyze the person's clothing. Respond ONLY with a JSON object containing these keys: 'color' (red/yellow/orange, blue/cyan, black/white/gray, multi/print), 'style' (A-line/umbrella skirt, H-line/straight, O-line/loose/cocoon, casual, tight/slim), 'material' (leather/patent, knit/tweed/wool, silk/chiffon, denim, cotton/linen), 'hair' (draped/down, high pony, twin pony, updo/bun, short), 'pattern' (polka-dot, stripes/lines, solid/plain, plaid/check/grid, color-block), 'blessing' (generate a beautiful 4-character parallel classical Chinese blessing/phrase, e.g. '绯红霓裳' or '金玉满堂', matching the color or vibe of their outfit). No markdown, no conversation.";
 
             const payload = {
-                model: "moondream", // Local VLM backbone
+                model: "gemma4:e2b", // Local VLM backbone
                 messages: [{
                     role: "user",
                     content: [
