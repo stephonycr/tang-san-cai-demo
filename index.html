@@ -978,7 +978,7 @@
             ctx.scale(-1, 1);
             ctx.drawImage(webcamElement, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
             const base64Image = hiddenCanvas.toDataURL('image/jpeg').split(',')[1];
-            const useLocalAI = document.getElementById('useLocalAI').checked;
+            const useLocalAI = document.getElementById('useLocalAI')?.checked ?? true;
             let tags = null;
             try {
                 tags = useLocalAI ? await analyzeImageWithGemma(base64Image) : await analyzeImageWithGemini(base64Image);
@@ -1023,7 +1023,7 @@
          * Calls Gemini API to classify outfit and generate blessing
          */
         async function analyzeImageWithGemini(base64Image) {
-            const apiKey = document.getElementById('apiKey').value;
+            const apiKey = document.getElementById('apiKey')?.value || '';
             let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
             if (apiKey) {
                 url += `?key=${apiKey}`;
@@ -1067,7 +1067,7 @@
          * Calls local Ollama Moondream to classify outfit and generate blessing
          */
         async function analyzeImageWithGemma(base64Image) {
-            const endpoint = document.getElementById('apiEndpoint').value;
+            const endpoint = document.getElementById('apiEndpoint')?.value || 'http://localhost:11434/v1';
             const url = `${endpoint}/chat/completions`;
 
             const prompt = "Analyze the person's clothing. Respond ONLY with a JSON object containing these keys: 'color' (red/yellow/orange, blue/cyan, black/white/gray, multi/print), 'style' (A-line/umbrella skirt, H-line/straight, O-line/loose/cocoon, casual, tight/slim), 'material' (leather/patent, knit/tweed/wool, silk/chiffon, denim, cotton/linen), 'hair' (draped/down, high pony, twin pony, updo/bun, short), 'pattern' (polka-dot, stripes/lines, solid/plain, plaid/check/grid, color-block), 'blessing' (generate a beautiful 4-character parallel classical Chinese blessing/phrase, e.g. '绯红霓裳' or '金玉满堂', matching the color or vibe of their outfit). No markdown, no conversation.";
