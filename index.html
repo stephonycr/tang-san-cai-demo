@@ -201,12 +201,11 @@
             <p class="text-[8px] text-amber-500/60 font-bold tracking-[0.25em] mt-1 font-roman">THE SANCAI HOLOGRAPHIC TIME MIRROR</p>
         </div>
 
-
-            <!-- 2. The Vertical Holographic Mirror (Height: 680px, Width: 100%) -->
-            <div id="unifiedStage" class="relative w-full rounded-[2rem] overflow-hidden bg-[#060605] border-4 border-amber-500/20 shadow-[0_0_50px_rgba(0,0,0,0.8)] transition-all duration-700 hover:border-amber-500/40" style="height: 680px;">
+        <!-- 2. The Vertical Holographic Mirror (Height: 680px, Width: 100%) -->
+        <div id="unifiedStage" class="relative w-full rounded-[2rem] overflow-hidden bg-[#060605] border-4 border-amber-500/20 shadow-[0_0_50px_rgba(0,0,0,0.8)] transition-all duration-700 hover:border-amber-500/40" style="height: 680px;">
                 
                 <!-- 1. Picture-in-Picture Webcam Feed (Top-Right PIP) -->
-                <div id="webcamPIP" class="absolute top-4 right-4 z-25 w-32 h-40 rounded-2xl overflow-hidden border border-amber-500/30 shadow-[0_8px_32px_rgba(0,0,0,0.5)] bg-neutral-950 flex items-center justify-center">
+                <div id="webcamPIP" class="absolute top-4 right-4 z-30 w-32 h-40 rounded-2xl overflow-hidden border border-amber-500/30 shadow-[0_8px_32px_rgba(0,0,0,0.5)] bg-neutral-950 flex items-center justify-center">
                     <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover" style="transform: scaleX(-1);"></video>
                     <!-- Mini status label -->
                     <div class="absolute bottom-1 left-1.5 px-1.5 py-0.5 bg-black/60 rounded text-[7px] text-amber-500/80 font-classical font-semibold tracking-wider">
@@ -223,7 +222,7 @@
                 <video id="videoPlayerB" class="absolute inset-0 w-full h-full object-contain z-20 opacity-0 transition-opacity duration-300 pointer-events-none" playsinline></video>
                 
                 <!-- Camera Error / Warning HUD -->
-                <div id="cameraWarningHUD" class="hidden absolute inset-0 bg-neutral-950/98 p-8 flex flex-col items-center justify-center text-center z-[24] space-y-4 border border-amber-500/20">
+                <div id="cameraWarningHUD" class="hidden absolute inset-0 bg-neutral-950/98 p-8 flex flex-col items-center justify-center text-center z-30 space-y-4 border border-amber-500/20">
                     <div class="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 animate-bounce shadow-lg border border-amber-500/20">
                         <i class="fa-solid fa-camera text-2xl"></i>
                     </div>
@@ -241,35 +240,35 @@
                 <img id="stageFigurineImg" class="absolute inset-0 w-full h-full object-contain select-none transition-all duration-700 z-10 opacity-0 filter drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]" src="assets/images/optimal_1.jpg" alt="Tang Figurine Hologram" />
                 
                 <!-- 4. SVG Silhouette Overlay (for guiding pose, hidden in new flow but kept for structure) -->
-                <svg id="poseSilhouetteSVG" class="absolute inset-0 w-full h-full pointer-events-none opacity-0 select-none z-15 hidden" style="transform: scaleX(-1); transform-origin: center;" viewBox="0 0 320 320">
+                <svg id="poseSilhouetteSVG" class="absolute inset-0 w-full h-full pointer-events-none opacity-0 select-none z-30 hidden" style="transform: scaleX(-1); transform-origin: center;" viewBox="0 0 320 320">
                     <!-- SVG paths will be injected by script -->
                 </svg>
                 
                 <!-- 5. Floating Status Badge (Top-Left) -->
-                <div class="absolute top-4 left-4 z-25 flex flex-col gap-1.5 items-start">
+                <div class="absolute top-4 left-4 z-30 flex flex-col gap-1.5 items-start">
                     <span id="trackingStatus" class="bg-neutral-950/85 backdrop-blur-md border border-white/5 text-[9px] text-amber-100/80 px-2.5 py-1.5 rounded-md shadow-2xl tracking-wider flex items-center select-none font-classical">
                         <span class="w-1.5 h-1.5 rounded-full bg-error animate-ping mr-1.5" id="statusDot"></span>
                         摄像头关闭
                     </span>
                     <div class="bg-neutral-950/85 backdrop-blur-md border border-amber-500/20 text-[9px] font-bold text-amber-500 px-2.5 py-1.5 rounded-md shadow-2xl tracking-widest font-classical uppercase hidden" id="activeChallengeBadge">正在挑战：伞裙乐人 · 反弹琵琶</div>
                 </div>
-
+ 
                 <!-- 6. Floating Kiosk Instruction Card (Bottom Center) -->
-                <div id="kioskInstruction" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-25 bg-neutral-950/90 backdrop-blur-md border border-amber-500/30 px-6 py-3 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.8)] text-center max-w-[85%] transition-all duration-500 opacity-0 transform translate-y-4 pointer-events-none">
+                <div id="kioskInstruction" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-neutral-950/90 backdrop-blur-md border border-amber-500/30 px-6 py-3 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.8)] text-center max-w-[85%] transition-all duration-500 opacity-0 transform translate-y-4 pointer-events-auto cursor-pointer" onclick="skipPoseChallenge()" title="点击直接唤醒">
                     <span id="kioskInstructionText" class="text-xs font-classical font-bold text-amber-500 tracking-[0.15em] leading-relaxed">
                         正在读取您的身影...
                     </span>
                 </div>
                 
                 <!-- Big Flashing Prompt for Interaction Guidance -->
-                <div id="guidancePromptBanner" class="hidden absolute top-1/3 left-0 right-0 text-center z-25 pointer-events-none animate-bounce">
+                <div id="guidancePromptBanner" class="hidden absolute top-1/3 left-0 right-0 text-center z-30 pointer-events-none animate-bounce">
                     <span id="guidancePromptText" class="px-6 py-3 bg-amber-500/20 backdrop-blur-md border-2 border-amber-500 text-amber-500 rounded-full font-classical text-xs font-bold tracking-[0.2em] shadow-[0_0_30px_rgba(212,175,55,0.4)]">
                         🙌 请抬起双手，与唐三彩开启时空共鸣！ 🙌
                     </span>
                 </div>
                 
                 <!-- 9. Manual Awaken Button (Revealed after curtain opens) -->
-                <div id="awakenButtonContainer" class="absolute inset-0 flex items-center justify-center z-25 opacity-0 pointer-events-none transition-all duration-500">
+                <div id="awakenButtonContainer" class="absolute inset-0 flex items-center justify-center z-30 opacity-0 pointer-events-none transition-all duration-500">
                     <button id="awakenButton" disabled class="px-8 py-4 bg-[#1a1105]/95 text-amber-500/50 border-2 border-amber-500/20 rounded-full font-classical text-lg font-bold tracking-widest shadow-[0_0_20px_rgba(212,175,55,0.05)] transition-all duration-300 cursor-not-allowed" onclick="manuallyAwaken()">
                         <span class="flex items-center gap-3" id="awakenButtonText">
                             <svg class="animate-spin h-5 w-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -280,19 +279,20 @@
                         </span>
                     </button>
                 </div>
-
+ 
                 <!-- 7. Kiosk Start Overlay (Standby / Attract Loop state) -->
-                <div id="startOverlay" class="absolute inset-0 z-30 flex items-center justify-center bg-black/10 transition-opacity duration-500">
+                <div id="startOverlay" class="absolute inset-0 z-40 flex items-center justify-center bg-black/10 transition-opacity duration-500">
                     <!-- Center Gold Button -->
-                    <button id="curtainBtn" class="w-36 h-36 rounded-full bg-[#d4af37]/5 border-2 border-[#d4af37]/50 flex flex-col items-center justify-center text-[#d4af37] shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:scale-105 hover:bg-[#d4af37]/15 transition-all duration-300 z-40 group" onclick="startCinematicFlow()">
+                    <button id="curtainBtn" class="w-36 h-36 rounded-full bg-[#d4af37]/5 border-2 border-[#d4af37]/50 flex flex-col items-center justify-center text-[#d4af37] shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:scale-105 hover:bg-[#d4af37]/15 transition-all duration-300 z-50 group" onclick="startCinematicFlow()">
                         <i class="fa-solid fa-play text-2xl mb-2 group-hover:scale-110 transition-transform duration-300"></i>
                         <span class="text-xs font-classical font-bold tracking-[0.2em]">开启共舞</span>
                         <span class="text-[8px] font-roman opacity-60 mt-1">START DANCE</span>
                     </button>
                 </div>
+ 
 
                 <!-- 8. Museum Sticker Gift Overlay (State 11) -->
-                <div id="stickerGiftOverlay" class="absolute inset-0 bg-neutral-950/95 z-40 flex flex-col items-center justify-center p-6 opacity-0 pointer-events-none transition-opacity duration-500">
+                <div id="stickerGiftOverlay" class="absolute inset-0 bg-neutral-950/95 z-50 flex flex-col items-center justify-center p-6 opacity-0 pointer-events-none transition-opacity duration-500">
                     <!-- The Polaroid Museum Card -->
                     <div id="stickerCard" class="bg-gradient-to-b from-[#161614] to-[#080807] border-2 border-[#d4af37]/30 rounded-3xl p-5 flex flex-col items-center space-y-4 shadow-[0_0_50px_rgba(212,175,55,0.15)] w-80 transform scale-90 transition-transform duration-500">
                         
@@ -332,7 +332,7 @@
                 </div>
 
                 <!-- Floating On-Screen Debug Logger (Inside Stage Overlay) -->
-                <div id="onScreenLogger" class="hidden absolute bottom-20 left-4 z-40 w-80 h-36 bg-black bg-opacity-95 border border-white/20 rounded-lg p-2.5 text-[9px] font-mono text-green-400 overflow-hidden shadow-2xl flex flex-col">
+                <div id="onScreenLogger" class="hidden absolute bottom-20 left-4 z-50 w-80 h-36 bg-black bg-opacity-95 border border-white/20 rounded-lg p-2.5 text-[9px] font-mono text-green-400 overflow-hidden shadow-2xl flex flex-col">
                     <div class="flex justify-between border-b border-white/10 pb-1.5 mb-1.5 shrink-0">
                         <span class="text-white font-semibold flex items-center gap-1">🔍 调试日志 (Debug Logs)</span>
                         <div class="flex gap-2">
@@ -350,35 +350,6 @@
                 </div>
             </div>
 
-            <!-- 3. Integrated Info & Control Card (Museum Style) -->
-            <div class="bg-neutral-950/40 backdrop-blur-md border border-amber-500/10 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="p-4 space-y-3">
-                    
-                    <!-- Museum Artifact Label Row -->
-                    <div class="flex items-center gap-3 bg-neutral-900/50 p-3 rounded-xl select-none justify-between border border-amber-500/5">
-                        <div class="flex items-center gap-3 flex-grow overflow-hidden">
-                            <img id="museumFigurineThumb" class="w-10 h-14 object-cover rounded-lg bg-black border border-amber-500/20 shadow-md transition-all duration-500" src="" />
-                            <div class="flex-grow min-w-0">
-                                <h4 class="text-xs font-bold text-amber-500 flex items-center gap-1.5 truncate font-classical">
-                                    <i class="fa-solid fa-scroll text-amber-600/80"></i> 
-                                    <span id="museumFigurineName">-</span>
-                                </h4>
-                                <p id="museumFigurineDesc" class="text-[10px] text-amber-100/60 leading-relaxed mt-1 font-classical">-</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Score removed here to favor floating top-right video overlay score badge -->
-                    </div>
-
-                    <!-- Sleek Integrated Control Actions -->
-                    <div class="pt-1">
-                        <button id="skipPoseBtn" class="w-full py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-amber-500 font-classical text-xs font-bold tracking-[0.2em] transition-all duration-300 shadow-lg" onclick="skipPoseChallenge()">
-                            ⚡ 直接唤醒唐三彩乐舞 (Direct Awaken)
-                        </button>
-                    </div>
-                    
-                </div>
-            </div>
 
         </div>
 
@@ -399,24 +370,55 @@
         const FIGURINES_DB = {
             optimal_1: {
                 id: "optimal_1",
-                name: "反弹琵琶 · 伞裙乐人",
+                name: "反弹琵琶 · 双手水平",
                 badge: "大唐非遗 · 琵琶乐伎",
-                desc: "双手水平举起，釉色斑驳绚丽，作盛唐经典的横笛乐人舞姿，雍容大方。",
-                image: "assets/images/new_sticker.png",
-                video: "assets/videos/optimal_1.MOV",
+                desc: "双手抬起至水平位置，作盛唐经典的琵琶乐伎舞姿，优雅灵动。",
+                image: "assets/images/optimal_1.jpg",
                 poseKey: "optimal_1",
                 poseLabel: "正在挑战：伞裙乐人 · 双手水平",
                 tags: {
-                    color: "红/黄/橙", // Amber/Yellow tones
-                    style: "A型/伞裙",
-                    material: "丝绸/雪纺",
-                    hair: "双马尾", // Represented by flat side buns
-                    pattern: "纯色"
+                    color: "红/黄/橙"
+                }
+            },
+            optimal_2: {
+                id: "optimal_2",
+                name: "大唐拂袖 · 抬起左手",
+                badge: "大唐非遗 · 拂袖乐伎",
+                desc: "抬起左手高于肩膀，长袖拂面，尽显盛唐华美之风。",
+                image: "assets/images/optimal_2.jpg",
+                poseKey: "optimal_2",
+                poseLabel: "正在挑战：大唐拂袖 · 抬起左手",
+                tags: {
+                    color: "蓝/青"
+                }
+            },
+            optimal_3: {
+                id: "optimal_3",
+                name: "仙人指路 · 执乐仕女",
+                badge: "大唐非遗 · 执乐仕女",
+                desc: "左手斜斜向外轻盈扬起，右手弯曲捧至胸前，古雅深邃。",
+                image: "assets/images/optimal_3.jpg",
+                poseKey: "optimal_3",
+                poseLabel: "正在挑战：仙人指路 · 执乐仕女",
+                tags: {
+                    color: "黑/白/灰"
+                }
+            },
+            optimal_4: {
+                id: "optimal_4",
+                name: "敦煌飞天 · 飞天乐伎",
+                badge: "大唐非遗 · 飞天乐伎",
+                desc: "左手高抬高于肩膀，右手向外微微舒展张开，飘逸自由。",
+                image: "assets/images/optimal_4.jpeg",
+                poseKey: "optimal_4",
+                poseLabel: "正在挑战：敦煌飞天 · 飞天乐伎",
+                tags: {
+                    color: "多色/印花"
                 }
             }
         };
 
-        const FIGURINE_KEYS = ['optimal_1'];
+        const FIGURINE_KEYS = ['optimal_1', 'optimal_2', 'optimal_3', 'optimal_4'];
         const figurinesDb = Object.values(FIGURINES_DB);
         let currentFigurineIndex = 0;
     </script>
@@ -597,14 +599,8 @@
             }
             resetKiosk();
             
-            // Initialize description label for the single figurine
-            const figurine = FIGURINES_DB['optimal_1'];
-            const name = document.getElementById('museumFigurineName');
-            const desc = document.getElementById('museumFigurineDesc');
-            const thumb = document.getElementById('museumFigurineThumb');
-            if (name) name.innerText = figurine.name;
-            if (desc) desc.innerText = figurine.desc;
-            if (thumb) thumb.src = figurine.image;
+            // Initialize description label with default figurine
+            updateMuseumInfoCard(FIGURINES_DB['optimal_1']);
         });
 
         async function retryWebcamAccess() {
@@ -715,6 +711,10 @@
                 mocap.spinState = 0;
                 mocap.isStill = false;
             }
+
+            // 6. Reset matched figurine to default
+            window.matchedFigurineId = 'optimal_1';
+            updateMuseumInfoCard(FIGURINES_DB['optimal_1']);
             
             updateTrackingBadge("success", "已就绪");
         }
@@ -751,13 +751,16 @@
                 
                 if (mocap) {
                     mocap.isPoseTriggerMode = true; // Enable pose match challenge!
-                    mocap.activePoseKey = 'optimal_1'; // Require optimal_1 pose (raise hands)
+                    const matchedId = window.matchedFigurineId || 'optimal_1';
+                    const figurine = FIGURINES_DB[matchedId];
+                    mocap.activePoseKey = figurine ? figurine.poseKey : 'optimal_1'; // Require matched pose!
                     mocap.matchStartTime = null; // Reset hold timer
+                    
+                    const label = figurine ? figurine.name : "伞裙乐人";
+                    updateInstruction(`🙌 请做出 [${label}] 的姿势来唤醒它 🙌`);
                 }
                 
-                updateInstruction("🙌 抬起双手唤醒唐佣 🙌");
                 updateTrackingBadge("success", "已就绪，请摆出相同姿势");
-                showGuidancePrompt("🙌 抬起双手唤醒唐佣 🙌");
             });
             
             // Trigger silent VLM match immediately while video is playing
@@ -783,7 +786,8 @@
                 }
                 
                 // Show Polaroid sticker card
-                const figurine = FIGURINES_DB['optimal_1'];
+                const matchedId = window.matchedFigurineId || 'optimal_1';
+                const figurine = FIGURINES_DB[matchedId];
                 if (figurine) {
                     document.getElementById('stickerImg').src = figurine.image;
                 }
@@ -935,6 +939,35 @@
 
         // ================= SILENT BACKGROUND AI MATCHING & STICKER TEXT GENERATION =================
 
+        function matchFigurineByColor(color) {
+            console.log("[AI Match] Finding matching figurine for color:", color);
+            // Search in database
+            for (let key in FIGURINES_DB) {
+                if (FIGURINES_DB[key].tags && FIGURINES_DB[key].tags.color === color) {
+                    return FIGURINES_DB[key];
+                }
+            }
+            // Fallback to optimal_1
+            return FIGURINES_DB['optimal_1'];
+        }
+
+        function updateMuseumInfoCard(figurine) {
+            console.log("[AI Match] Updating museum card with figurine:", figurine.name);
+            const nameEl = document.getElementById('museumFigurineName');
+            const descEl = document.getElementById('museumFigurineDesc');
+            const thumbEl = document.getElementById('museumFigurineThumb');
+            
+            if (nameEl) nameEl.innerText = figurine.name;
+            if (descEl) descEl.innerText = figurine.desc;
+            if (thumbEl) thumbEl.src = figurine.image;
+
+            // Also update the target pose inside motion capture if available
+            if (window.mocap) {
+                window.mocap.currentPoseKey = figurine.poseKey;
+                console.log("[AI Match] Sync'd mocap target pose to:", figurine.poseKey);
+            }
+        }
+
         async function triggerSilentBackgroundMatch() {
             console.log("[AI Match] Triggering silent background OOTD match...");
             const hiddenCanvas = document.createElement('canvas');
@@ -951,12 +984,17 @@
                 tags = useLocalAI ? await analyzeImageWithGemma(base64Image) : await analyzeImageWithGemini(base64Image);
                 console.log("[AI Match] Silent match completed. Tags:", tags);
                 window.aiBlessing = tags.blessing || "岁岁平安，万事大吉";
-                window.detectedColor = tags.color;
+                window.detectedColor = tags.color || "多色/印花";
             } catch (e) {
                 console.error("[AI Match] Silent background AI match failed:", e);
                 window.aiBlessing = "岁岁平安，大吉大利";
                 window.detectedColor = "多色/印花";
             }
+
+            // Unconditionally update matched figurine and UI card
+            const matchedFigurine = matchFigurineByColor(window.detectedColor);
+            window.matchedFigurineId = matchedFigurine.id;
+            updateMuseumInfoCard(matchedFigurine);
         }
 
         function setAwakenButtonReady(ready, color = null) {
@@ -1058,6 +1096,55 @@
             const textResp = resJson.choices[0].message.content;
             return translateTags(textResp);
         }
+
+        const tagTranslationMap = {
+            color: {
+                "red/yellow/orange": "红/黄/橙",
+                "blue/cyan": "蓝/青",
+                "black/white/gray": "黑/白/灰",
+                "multi/print": "多色/印花",
+                "red": "红/黄/橙",
+                "yellow": "红/黄/橙",
+                "orange": "红/黄/橙",
+                "blue": "蓝/青",
+                "cyan": "蓝/青",
+                "green": "蓝/青",
+                "black": "黑/白/灰",
+                "white": "黑/白/灰",
+                "gray": "黑/白/灰",
+                "grey": "黑/白/灰",
+                "multi": "多色/印花",
+                "print": "多色/印花"
+            },
+            style: {
+                "a-line/umbrella skirt": "A型/伞裙",
+                "h-line/straight": "H型/直筒",
+                "o-line/loose/cocoon": "O型/宽松茧型",
+                "casual": "休闲风格",
+                "tight/slim": "紧身风格"
+            },
+            material: {
+                "leather/patent": "皮革/漆皮",
+                "knit/tweed/wool": "针织/粗花呢",
+                "silk/chiffon": "丝绸/雪纺",
+                "denim": "牛仔",
+                "cotton/linen": "棉麻"
+            },
+            hair: {
+                "draped/down": "披肩发",
+                "high pony": "高马尾",
+                "twin pony": "双马尾",
+                "updo/bun": "丸子头/盘发",
+                "short": "短发"
+            },
+            pattern: {
+                "polka-dot": "波点",
+                "stripes/lines": "线条",
+                "solid/plain": "纯色",
+                "plaid/check/grid": "格纹",
+                "color-block": "拼色"
+            }
+        };
 
         /**
          * Parses VLM response and translates tags to standard Chinese keys, preserving the blessing
