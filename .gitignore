@@ -5,7 +5,8 @@
 
 # Ignore local AI models and servers
 .ollama_models/
-ollama/
+ollama
+ollama_dist/
 ollama_extracted/
 *.log
 

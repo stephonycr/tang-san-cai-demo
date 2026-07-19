@@ -212,7 +212,6 @@
                         📷 实时投影
                     </div>
                 </div>
-                
                 <!-- 2. The 3D WebGL Canvas (Figurine) -->
                 <canvas id="threejs-canvas" class="absolute inset-0 w-full h-full z-10 opacity-0 transition-opacity duration-1000"></canvas>
                 
@@ -220,6 +219,9 @@
                 <!-- 2b. Pre-rendered Video Player Overlays (Double Buffer for Seamless Crossfading) -->
                 <video id="videoPlayerA" class="absolute inset-0 w-full h-full object-contain z-20 opacity-0 transition-opacity duration-300 pointer-events-none" playsinline></video>
                 <video id="videoPlayerB" class="absolute inset-0 w-full h-full object-contain z-20 opacity-0 transition-opacity duration-300 pointer-events-none" playsinline></video>
+                
+                <!-- 2c. Standby Silhouette Image Overlay (State: STANDBY_LOOP) -->
+                <img id="standbySilhouetteOverlay" class="absolute inset-0 w-full h-full object-contain z-20 transition-opacity duration-500 opacity-100" src="assets/videos/silhouette.png" alt="Silhouette Attract Loop" />
                 
                 <!-- Camera Error / Warning HUD -->
                 <div id="cameraWarningHUD" class="hidden absolute inset-0 bg-neutral-950/98 p-8 flex flex-col items-center justify-center text-center z-30 space-y-4 border border-amber-500/20">
@@ -368,57 +370,74 @@
     <script>
         // 🏺 大唐时空幻影镜——展项资产数据库 (Single Figurine Database)
         const FIGURINES_DB = {
-            optimal_1: {
-                id: "optimal_1",
-                name: "反弹琵琶 · 双手水平",
-                badge: "大唐非遗 · 琵琶乐伎",
-                desc: "双手抬起至水平位置，作盛唐经典的琵琶乐伎舞姿，优雅灵动。",
-                image: "assets/images/optimal_1.jpg",
+            red: {
+                id: "red",
+                name: "反弹琵琶 · 绯红霓裳",
+                badge: "红釉乐人",
+                desc: "红色衣裳唤醒红釉乐人，作琵琶横笛之乐，雍容华美。",
+                image: "assets/images/card_red.png",
                 poseKey: "optimal_1",
-                poseLabel: "正在挑战：伞裙乐人 · 双手水平",
+                poseLabel: "正在挑战：双手抬至水平",
+                revealVideo: "assets/videos/1_reveal_red.mp4",
                 tags: {
-                    color: "红/黄/橙"
+                    color: "红"
                 }
             },
-            optimal_2: {
-                id: "optimal_2",
-                name: "大唐拂袖 · 抬起左手",
-                badge: "大唐非遗 · 拂袖乐伎",
-                desc: "抬起左手高于肩膀，长袖拂面，尽显盛唐华美之风。",
-                image: "assets/images/optimal_2.jpg",
-                poseKey: "optimal_2",
-                poseLabel: "正在挑战：大唐拂袖 · 抬起左手",
+            blue: {
+                id: "blue",
+                name: "大唐拂袖 · 天青呈祥",
+                badge: "蓝釉乐人",
+                desc: "蓝色衣裳唤醒蓝釉乐人，袖舞翩跹，尽显盛唐风采。",
+                image: "assets/images/card_blue.png",
+                poseKey: "optimal_1",
+                poseLabel: "正在挑战：双手抬至水平",
+                revealVideo: "assets/videos/1_reveal_blue.mp4",
                 tags: {
-                    color: "蓝/青"
+                    color: "蓝"
                 }
             },
-            optimal_3: {
-                id: "optimal_3",
-                name: "仙人指路 · 执乐仕女",
-                badge: "大唐非遗 · 执乐仕女",
-                desc: "左手斜斜向外轻盈扬起，右手弯曲捧至胸前，古雅深邃。",
-                image: "assets/images/optimal_3.jpg",
-                poseKey: "optimal_3",
-                poseLabel: "正在挑战：仙人指路 · 执乐仕女",
+            black: {
+                id: "black",
+                name: "仙人指路 · 水墨乐姬",
+                badge: "黑釉乐人",
+                desc: "黑色衣裳唤醒黑釉乐人，姿态古雅，如水墨山水。",
+                image: "assets/images/card_black.png",
+                poseKey: "optimal_1",
+                poseLabel: "正在挑战：双手抬至水平",
+                revealVideo: "assets/videos/1_reveal_black.mp4",
                 tags: {
-                    color: "黑/白/灰"
+                    color: "黑"
                 }
             },
-            optimal_4: {
-                id: "optimal_4",
-                name: "敦煌飞天 · 飞天乐伎",
-                badge: "大唐非遗 · 飞天乐伎",
-                desc: "左手高抬高于肩膀，右手向外微微舒展张开，飘逸自由。",
-                image: "assets/images/optimal_4.jpeg",
-                poseKey: "optimal_4",
-                poseLabel: "正在挑战：敦煌飞天 · 飞天乐伎",
+            white: {
+                id: "white",
+                name: "执乐仕女 · 皎白霓裳",
+                badge: "白釉乐人",
+                desc: "白色衣裳唤醒白釉乐人，皎皎若月，温婉动人。",
+                image: "assets/images/card_white.png",
+                poseKey: "optimal_1",
+                poseLabel: "正在挑战：双手抬至水平",
+                revealVideo: "assets/videos/1_reveal_white.mp4",
                 tags: {
-                    color: "多色/印花"
+                    color: "白"
+                }
+            },
+            gray: {
+                id: "gray",
+                name: "执乐仕女 · 苍灰古韵",
+                badge: "灰釉乐人",
+                desc: "灰色衣裳唤醒灰釉乐人，素雅淡远，极具青铜古韵。",
+                image: "assets/images/card_gray.png",
+                poseKey: "optimal_1",
+                poseLabel: "正在挑战：双手抬至水平",
+                revealVideo: "assets/videos/1_reveal_gray.mp4",
+                tags: {
+                    color: "灰"
                 }
             }
         };
 
-        const FIGURINE_KEYS = ['optimal_1', 'optimal_2', 'optimal_3', 'optimal_4'];
+        const FIGURINE_KEYS = ['red', 'blue', 'black', 'white', 'gray'];
         const figurinesDb = Object.values(FIGURINES_DB);
         let currentFigurineIndex = 0;
     </script>
@@ -559,19 +578,18 @@
 
         // --- STATE MACHINE DEFINITION ---
         const AppState = {
-            STANDBY_LOOP: 'STANDBY_LOOP',           // Video 0 (attract loop) playing, start button overlay visible
-            INTRO_REVEAL: 'INTRO_REVEAL',           // Video 1 (Curtain opens -> Silhouette -> Colored) playing
-            STANDBY_WAIT: 'STANDBY_WAIT',           // Video 1 ended, paused on static colored figurine, waiting for movement
-            DANCE_SANCAI: 'DANCE_SANCAI',           // Video 2 (Pure Sancai dance) playing
-            DANCE_BLUE_WHITE: 'DANCE_BLUE_WHITE',   // Video 3 (Dance & Blue-White) playing
-            DANCE_GOLD: 'DANCE_GOLD',               // Video 4 (Dance & Gold/Other) playing
+            STANDBY_LOOP: 'STANDBY_LOOP',           // Silhouette image visible, attract screen
+            INTRO_REVEAL: 'INTRO_REVEAL',           // OOTD Match -> playing matched color reveal video
+            STANDBY_WAIT: 'STANDBY_WAIT',           // Reveal ended, paused on color figurine, waiting for pose challenge
+            DANCE_LOOP: 'DANCE_LOOP',               // Main looping Hu Xuan Dance (dance_loop.mp4) playing
+            SPIN_TRANSITION: 'SPIN_TRANSITION',     // Sequential spin transition video (spin_X.mp4) playing
             OUTRO_VIDEO: 'OUTRO_VIDEO',             // Video 5 (Outro & Curtain Close) playing
             STICKER_GIFT: 'STICKER_GIFT'            // Video 5 ended, showing sticker card
         };
         let currentState = AppState.STANDBY_LOOP;
         let activePlayer = null; // Currently playing video player element
         
-        let spinCount = 0;
+        let spinVideoIndex = 0; // Tracks which spin video to play (0 to 5)
 
         window.matchedFigurineId = 'optimal_1';
         window.aiBlessing = '岁岁平安，万事大吉';
@@ -694,8 +712,17 @@
             const stageImg = document.getElementById('stageFigurineImg');
             if (stageImg) stageImg.style.opacity = "0";
             
-            // 3. Play Video 0 (Standby Attract Loop) on Loop
-            playSeamlessVideo("assets/videos/0_standby.mp4", true);
+            // 3. Show standby silhouette image overlay
+            const standbyOverlay = document.getElementById('standbySilhouetteOverlay');
+            if (standbyOverlay) {
+                standbyOverlay.classList.remove('opacity-0');
+                standbyOverlay.classList.add('opacity-100');
+            }
+            if (activePlayer) {
+                activePlayer.pause();
+                activePlayer.classList.remove('opacity-100');
+                activePlayer.classList.add('opacity-0');
+            }
             
             // 4. Reset Awaken Button
             const awakenContainer = document.getElementById('awakenButtonContainer');
@@ -713,8 +740,11 @@
             }
 
             // 6. Reset matched figurine to default
-            window.matchedFigurineId = 'optimal_1';
-            updateMuseumInfoCard(FIGURINES_DB['optimal_1']);
+            window.matchedFigurineId = 'white';
+            window.detectedColor = 'white';
+            window.aiBlessing = "岁岁平安，万事大吉";
+            spinVideoIndex = 0;
+            updateMuseumInfoCard(FIGURINES_DB['white']);
             
             updateTrackingBadge("success", "已就绪");
         }
@@ -722,7 +752,7 @@
         /**
          * State 2: Plays Video 1 (Curtain opens -> Silhouette -> Colored Figurine)
          */
-        function startCinematicFlow() {
+        async function startCinematicFlow() {
             if (currentState !== AppState.STANDBY_LOOP) return;
             
             console.log("[State Machine] Starting cinematic flow -> INTRO_REVEAL");
@@ -736,7 +766,35 @@
                 startOverlay.classList.add('opacity-0', 'pointer-events-none');
             }
             
+            // Show canvas loader overlay while VLM is performing the match
+            const loader = document.getElementById('canvasLoader');
+            const loaderTitle = document.getElementById('loaderTitle');
+            if (loader) {
+                if (loaderTitle) loaderTitle.innerText = "正在感应穿搭，重塑时空...";
+                loader.classList.remove('hidden');
+            }
+            
             updateInstruction("正在感应穿搭，重塑时空...");
+            
+            // Trigger VLM match and wait for the result
+            try {
+                await triggerSilentBackgroundMatch();
+            } catch (e) {
+                console.error("[State Machine] OOTD Match failed during start flow, falling back:", e);
+            }
+            
+            // Now we have the matched figurine ID
+            const matchedId = window.matchedFigurineId || 'white';
+            const figurine = FIGURINES_DB[matchedId];
+            const revealVid = figurine ? figurine.revealVideo : "assets/videos/1_reveal_white.mp4";
+            
+            // Hide loader and standby silhouette overlay
+            if (loader) loader.classList.add('hidden');
+            const standbyOverlay = document.getElementById('standbySilhouetteOverlay');
+            if (standbyOverlay) {
+                standbyOverlay.classList.remove('opacity-100');
+                standbyOverlay.classList.add('opacity-0');
+            }
             
             // Unmute players for interactive audio
             const playerA = document.getElementById('videoPlayerA');
@@ -744,27 +802,22 @@
             if (playerA) playerA.muted = false;
             if (playerB) playerB.muted = false;
             
-            // Play Video 1
-            playSeamlessVideo("assets/videos/1_reveal.mp4", false, () => {
+            console.log(`[State Machine] Playing color-matched reveal video: ${revealVid}`);
+            playSeamlessVideo(revealVid, false, () => {
                 console.log("[State Machine] Reveal video ended (timeupdate) -> STANDBY_WAIT");
                 currentState = AppState.STANDBY_WAIT;
                 
                 if (mocap) {
                     mocap.isPoseTriggerMode = true; // Enable pose match challenge!
-                    const matchedId = window.matchedFigurineId || 'optimal_1';
-                    const figurine = FIGURINES_DB[matchedId];
                     mocap.activePoseKey = figurine ? figurine.poseKey : 'optimal_1'; // Require matched pose!
                     mocap.matchStartTime = null; // Reset hold timer
                     
-                    const label = figurine ? figurine.name : "伞裙乐人";
+                    const label = figurine ? figurine.poseLabel.replace("正在挑战：", "") : "双手抬至水平";
                     updateInstruction(`🙌 请做出 [${label}] 的姿势来唤醒它 🙌`);
                 }
                 
                 updateTrackingBadge("success", "已就绪，请摆出相同姿势");
             });
-            
-            // Trigger silent VLM match immediately while video is playing
-            triggerSilentBackgroundMatch();
         }
 
         /**
@@ -786,7 +839,7 @@
                 }
                 
                 // Show Polaroid sticker card
-                const matchedId = window.matchedFigurineId || 'optimal_1';
+                const matchedId = window.matchedFigurineId || 'white';
                 const figurine = FIGURINES_DB[matchedId];
                 if (figurine) {
                     document.getElementById('stickerImg').src = figurine.image;
@@ -823,12 +876,9 @@
 
             window.onUserSpin = function() {
                 console.log(`[State Machine] onUserSpin triggered! currentState = "${currentState}"`);
-                if (currentState === AppState.DANCE_SANCAI) {
-                    console.log("[State Machine] User spin detected (1st spin) -> DANCE_BLUE_WHITE");
-                    triggerBlueWhiteTransition();
-                } else if (currentState === AppState.DANCE_BLUE_WHITE) {
-                    console.log("[State Machine] User spin detected (2nd spin) -> DANCE_GOLD");
-                    triggerGoldTransition();
+                if (currentState === AppState.DANCE_LOOP) {
+                    console.log(`[State Machine] User spin detected -> SPIN_TRANSITION (Index: ${spinVideoIndex + 1})`);
+                    triggerSpinTransition();
                 } else {
                     console.warn(`[State Machine] Spin ignored in current state: "${currentState}"`);
                 }
@@ -837,23 +887,19 @@
             window.onUserStill = function(isAbsent) {
                 if (!isAbsent) return; // Only trigger outro when user physically leaves (absent)
                 
-                if (activePlayer && activePlayer.ended) {
-                    if (currentState === AppState.DANCE_SANCAI || 
-                        currentState === AppState.DANCE_BLUE_WHITE || 
-                        currentState === AppState.DANCE_GOLD) {
-                        console.log("[State Machine] User left the scene -> OUTRO_VIDEO");
-                        playOutroVideo();
-                    }
+                if (currentState === AppState.DANCE_LOOP || currentState === AppState.SPIN_TRANSITION) {
+                    console.log("[State Machine] User left the scene -> OUTRO_VIDEO");
+                    playOutroVideo();
                 }
             };
 
             window.onUserActive = function() {}; // Disarmed general movement triggers
 
-        function triggerSancaiDance() {
+        function triggerMainDance() {
             if (currentState !== AppState.STANDBY_WAIT) return;
             
-            console.log("[State Machine] Pose matched -> DANCE_SANCAI");
-            currentState = AppState.DANCE_SANCAI;
+            console.log("[State Machine] Pose matched -> DANCE_LOOP");
+            currentState = AppState.DANCE_LOOP;
             
             hideGuidancePrompt(); // Hide "raise hands" prompt!
             
@@ -863,52 +909,61 @@
                 mocap.spinTimer = 0;
             }
             
-            playSeamlessVideo("assets/videos/2_dance_sancai.mp4", false, () => {
-                if (currentState === AppState.DANCE_SANCAI) {
-                    console.log("[State Machine] Video 2 ended (timeupdate). Showing spin prompt.");
-                    updateInstruction("🌀 转个圈，解锁青花瓷质感！ 🌀");
-                    showGuidancePrompt("🌀 转个圈，解锁青花瓷质感！ 🌀");
-                }
-            });
+            // Play dance_loop.mp4 once (non-looping)
+            playSeamlessVideo("assets/videos/dance_loop.mp4", false);
             
-            updateInstruction("✨ 已与大唐舞伴开启时空共鸣...");
+            updateInstruction("✨ 已与大唐舞伴开启时空共鸣，同频共舞中...");
             updateTrackingBadge("success", "与大唐舞伴同频共舞中");
-        }
-
-        function triggerBlueWhiteTransition() {
-            currentState = AppState.DANCE_BLUE_WHITE;
-            hideGuidancePrompt(); // Hide previous spin prompt!
             
-            playSeamlessVideo("assets/videos/3_dance_blue_white.mp4", false, () => {
-                if (currentState === AppState.DANCE_BLUE_WHITE) {
-                    console.log("[State Machine] Video 3 ended (timeupdate). Showing spin prompt.");
-                    updateInstruction("🌀 再转个圈，解锁黄金金釉！ 🌀");
-                    showGuidancePrompt("🌀 再转个圈，解锁黄金金釉！ 🌀");
+            // Show a floating prompt instructing the user to spin to change outfits!
+            setTimeout(() => {
+                if (currentState === AppState.DANCE_LOOP) {
+                    showGuidancePrompt("🌀 转个圈，解锁全新幻影霓裳！ 🌀");
                 }
-            });
-            
-            updateInstruction("✨ 正在展现青花瓷釉色，共舞中...");
+            }, 3000);
         }
 
-        function triggerGoldTransition() {
-            currentState = AppState.DANCE_GOLD;
-            hideGuidancePrompt(); // Hide previous spin prompt!
+        function triggerSpinTransition() {
+            currentState = AppState.SPIN_TRANSITION;
+            hideGuidancePrompt(); // Hide previous prompt
             
-            playSeamlessVideo("assets/videos/4_dance_gold.mp4", false, () => {
-                if (currentState === AppState.DANCE_GOLD) {
-                    console.log("[State Machine] Video 4 ended (timeupdate). Starting 10-second countdown to outro.");
-                    updateInstruction("✨ 大唐华舞毕，十秒后入世...");
-                    
-                    setTimeout(() => {
-                        if (currentState === AppState.DANCE_GOLD) {
-                            console.log("[State Machine] 10s timeout reached -> OUTRO_VIDEO");
+            const spinVideoNum = (spinVideoIndex % 6) + 1;
+            const spinVideoSrc = `assets/videos/spin_${spinVideoNum}.mp4`;
+            
+            console.log(`[State Machine] Playing spin video: ${spinVideoSrc}`);
+            updateInstruction("🌀 曼舞旋风，幻影随形... 🌀");
+            
+            playSeamlessVideo(spinVideoSrc, false, () => {
+                console.log(`[State Machine] Spin video ${spinVideoNum} ended.`);
+                
+                // Increment sequential index
+                spinVideoIndex++;
+                
+                currentState = AppState.DANCE_LOOP;
+                
+                if (spinVideoIndex === 6) {
+                    // After spin_6, play dance_loop.mp4 once, then proceed to outro
+                    console.log("[State Machine] Spin 6 ended. Playing final dance_loop...");
+                    playSeamlessVideo("assets/videos/dance_loop.mp4", false, () => {
+                        if (currentState === AppState.DANCE_LOOP) {
+                            console.log("[State Machine] Final dance finished. Proceeding to outro.");
                             playOutroVideo();
                         }
-                    }, 10000);
+                    });
+                } else {
+                    // For spin 1-5, do NOT play dance_loop.mp4, stay paused on the spin end frame
+                    console.log(`[State Machine] Spin ${spinVideoIndex} complete. Paused. Waiting for spin ${spinVideoIndex + 1}.`);
+                    
+                    updateInstruction("✨ 大唐仕女华丽转圈，解锁了全新姿态！");
+                    
+                    // Reset guide prompt after a short delay
+                    setTimeout(() => {
+                        if (currentState === AppState.DANCE_LOOP) {
+                            showGuidancePrompt("🌀 再转个圈，解锁下一个形象！ 🌀");
+                        }
+                    }, 2000);
                 }
             });
-            
-            updateInstruction("✨ 正在展现黄金金面，共舞中...");
         }
 
         /**
@@ -968,8 +1023,157 @@
             }
         }
 
+        function mapDescriptionToColor(text) {
+            const lower = text.toLowerCase();
+            
+            const colorDefinitions = {
+                '红': ['red', 'orange', 'yellow', 'pink', 'brown', '红', '黄', '橙', '褐'],
+                '蓝': ['blue', 'green', 'cyan', 'purple', '蓝', '绿', '青', '紫'],
+                '黑': ['black', 'dark', '黑'],
+                '白': ['white', 'light', '白'],
+                '灰': ['gray', 'grey', 'silver', '灰']
+            };
+
+            const anchors = ['dressed', 'wearing', 'outfit', 'shirt', 'clothing', 'top', 't-shirt', 'skirt', 'robe', 'garment', 'suit', 'dress', 'clothes', '衣', '衫', '裙', '袍'];
+            
+            // Find all anchor indices
+            const anchorIndices = [];
+            anchors.forEach(anchor => {
+                let startIndex = 0;
+                let idx;
+                while ((idx = lower.indexOf(anchor, startIndex)) > -1) {
+                    anchorIndices.push(idx);
+                    startIndex = idx + anchor.length;
+                }
+            });
+
+            if (anchorIndices.length === 0) {
+                console.warn("[Color Map] No clothing anchors found in description! Using global simple matching.");
+                // Fallback to simple matching
+                for (let color in colorDefinitions) {
+                    for (let kw of colorDefinitions[color]) {
+                        if (lower.includes(kw)) return color;
+                    }
+                }
+                return '白'; // Default fallback
+            }
+
+            let bestColor = '白';
+            let minDistance = 999999;
+
+            for (let color in colorDefinitions) {
+                const keywords = colorDefinitions[color];
+                keywords.forEach(kw => {
+                    let startIndex = 0;
+                    let kwIdx;
+                    while ((kwIdx = lower.indexOf(kw, startIndex)) > -1) {
+                        // Look-ahead filter for modifiers 'dark' and 'light'
+                        if (kw === 'dark' || kw === 'light') {
+                            const followingText = lower.substring(kwIdx + kw.length, kwIdx + kw.length + 15);
+                            let hasOtherColor = false;
+                            for (let otherColor in colorDefinitions) {
+                                const otherKeywords = colorDefinitions[otherColor];
+                                for (let okw of otherKeywords) {
+                                    if (okw !== 'dark' && okw !== 'light' && followingText.includes(okw)) {
+                                        hasOtherColor = true;
+                                        break;
+                                    }
+                                }
+                                if (hasOtherColor) break;
+                            }
+                            if (hasOtherColor) {
+                                console.log("[Color Map] Skipping modifier", kw, "followed by color in:", followingText);
+                                startIndex = kwIdx + kw.length;
+                                continue;
+                            }
+                        }
+
+                        // Calculate min distance to any anchor
+                        anchorIndices.forEach(aIdx => {
+                            const dist = Math.abs(kwIdx - aIdx);
+                            if (dist < minDistance) {
+                                minDistance = dist;
+                                bestColor = color;
+                                console.log("[Color Map] New closest color:", color, "(kw:", kw, "at", kwIdx, ") to anchor at", aIdx, "dist:", dist);
+                            }
+                        });
+                        
+                        startIndex = kwIdx + kw.length;
+                    }
+                });
+            }
+
+            return bestColor;
+        }
+
+        async function classifyColorWithVLM(base64Image, useLocalAI) {
+            if (!useLocalAI) {
+                // Gemini Cloud VLM path
+                const apiKey = document.getElementById('apiKey')?.value || '';
+                let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+                if (apiKey) {
+                    url += `?key=${apiKey}`;
+                } else {
+                    url = '/api/gemini';
+                }
+                
+                const prompt = "Describe the clothing of the person in this image. What is the dominant color?";
+                
+                const payload = {
+                    contents: [{
+                        parts: [
+                            { text: prompt },
+                            { inlineData: { mimeType: "image/jpeg", data: base64Image } }
+                        ]
+                    }],
+                    generationConfig: { temperature: 0.1 }
+                };
+                
+                const response = await fetchWithTimeout(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }, 10000);
+                
+                if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+                const resJson = await response.json();
+                const text = resJson.candidates[0].content.parts[0].text;
+                console.log("[Color Classifier] Gemini Cloud output:", text);
+                return { mappedColor: mapDescriptionToColor(text), rawText: text };
+            } else {
+                // Local Ollama Moondream path (Native endpoint!)
+                const endpoint = document.getElementById('apiEndpoint')?.value || 'http://localhost:11434';
+                const cleanEndpoint = endpoint.replace(/\/v1\/?$/, '').replace(/\/$/, '');
+                const url = `${cleanEndpoint}/api/generate`;
+                
+                const prompt = "Describe the clothing of the person in this image.";
+                
+                const payload = {
+                    model: "moondream:latest",
+                    prompt: prompt,
+                    images: [base64Image],
+                    stream: false,
+                    options: {
+                        temperature: 0.1
+                    }
+                };
+                
+                const response = await fetchWithTimeout(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }, 15000);
+                
+                if (!response.ok) throw new Error(`Local VLM error: ${response.status}`);
+                const resJson = await response.json();
+                const text = resJson.response;
+                console.log("[Color Classifier] Native Moondream output:", text);
+                return { mappedColor: mapDescriptionToColor(text), rawText: text };
+            }
+        }
+
         async function triggerSilentBackgroundMatch() {
-            console.log("[AI Match] Triggering silent background OOTD match...");
+            console.log("[AI Match] Triggering fast VLM color classification...");
             const hiddenCanvas = document.createElement('canvas');
             hiddenCanvas.width = 320;
             hiddenCanvas.height = 240;
@@ -979,22 +1183,111 @@
             ctx.drawImage(webcamElement, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
             const base64Image = hiddenCanvas.toDataURL('image/jpeg').split(',')[1];
             const useLocalAI = document.getElementById('useLocalAI')?.checked ?? true;
-            let tags = null;
+            
+            // Set safety defaults
+            window.detectedColor = "白";
+            window.aiBlessing = "岁岁平安，万事大吉";
+            let rawText = "未知";
+            
             try {
-                tags = useLocalAI ? await analyzeImageWithGemma(base64Image) : await analyzeImageWithGemini(base64Image);
-                console.log("[AI Match] Silent match completed. Tags:", tags);
-                window.aiBlessing = tags.blessing || "岁岁平安，万事大吉";
-                window.detectedColor = tags.color || "多色/印花";
+                // Call fast VLM color classification (blocks UI for ~3-4s on local Moondream)
+                const result = await classifyColorWithVLM(base64Image, useLocalAI);
+                window.detectedColor = result.mappedColor;
+                rawText = result.rawText;
+                console.log("[AI Match] Fast VLM mapped color:", window.detectedColor, "raw:", rawText);
             } catch (e) {
-                console.error("[AI Match] Silent background AI match failed:", e);
-                window.aiBlessing = "岁岁平安，大吉大利";
-                window.detectedColor = "多色/印花";
+                console.error("[AI Match] VLM color classification failed, using fallback:", e);
             }
 
-            // Unconditionally update matched figurine and UI card
+            // Immediately wake up matched figurine and update UI card details
             const matchedFigurine = matchFigurineByColor(window.detectedColor);
             window.matchedFigurineId = matchedFigurine.id;
             updateMuseumInfoCard(matchedFigurine);
+            
+            const cleanDisplay = rawText.trim().replace(/[\r\n]+/g, ' ').substring(0, 40);
+            updateTrackingBadge("success", `感应结果: ${window.detectedColor} ("${cleanDisplay}...")`);
+            
+            // Launch the rich blessing generation in the background (DOES NOT AWAIT!)
+            generateBackgroundBlessing(window.detectedColor, useLocalAI);
+        }
+
+        async function generateBackgroundBlessing(color, useLocalAI) {
+            console.log("[AI Blessing] Starting background blessing generator for color:", color);
+            try {
+                const blessing = await fetchBlessingFromAI(color, useLocalAI);
+                if (blessing && blessing.trim().length > 0) {
+                    const cleanedBlessing = blessing.trim().replace(/[^A-Za-z0-9\u4e00-\u9fa5]/g, '').substring(0, 8);
+                    console.log("[AI Blessing] Background blessing generation completed successfully:", cleanedBlessing);
+                    window.aiBlessing = cleanedBlessing;
+                    
+                    // Update Polaroid card text dynamically
+                    const stickerText = document.getElementById('stickerBlessing');
+                    if (stickerText) {
+                        stickerText.innerText = window.aiBlessing;
+                    }
+                }
+            } catch (e) {
+                console.error("[AI Blessing] Background blessing generation failed:", e);
+            }
+        }
+
+        async function fetchBlessingFromAI(color, useLocalAI) {
+            if (!useLocalAI) {
+                // Gemini Cloud path
+                const apiKey = document.getElementById('apiKey')?.value || '';
+                let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+                if (apiKey) {
+                    url += `?key=${apiKey}`;
+                } else {
+                    url = '/api/gemini';
+                }
+                
+                const prompt = `Based on the Tang Sancai glaze color: ${color}, generate a beautiful 4-character classical Chinese blessing/phrase matching this color. Respond ONLY with the 4 characters, no other words.`;
+                
+                const payload = {
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }],
+                    generationConfig: { temperature: 0.7 }
+                };
+                
+                const response = await fetchWithTimeout(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }, 10000);
+                
+                if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+                const resJson = await response.json();
+                return resJson.candidates[0].content.parts[0].text.trim();
+            } else {
+                // Local Ollama Gemma path (Text only!)
+                const endpoint = document.getElementById('apiEndpoint')?.value || 'http://localhost:11434';
+                const cleanEndpoint = endpoint.replace(/\/v1\/?$/, '').replace(/\/$/, '');
+                const url = `${cleanEndpoint}/v1/chat/completions`;
+                
+                const prompt = `Based on the Tang Sancai glaze color: ${color}, generate a beautiful 4-character classical Chinese blessing/phrase matching this color. Respond ONLY with the 4 characters, no JSON, no markdown, no other words.`;
+                
+                const payload = {
+                    model: "gemma4:e2b",
+                    messages: [{
+                        role: "user",
+                        content: prompt
+                    }],
+                    temperature: 0.7,
+                    max_tokens: 15
+                };
+                
+                const response = await fetchWithTimeout(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }, 10000);
+                
+                if (!response.ok) throw new Error(`Local Gemma error: ${response.status}`);
+                const resJson = await response.json();
+                return resJson.choices[0].message.content.trim();
+            }
         }
 
         function setAwakenButtonReady(ready, color = null) {
@@ -1019,225 +1312,6 @@
             }
         }
 
-        /**
-         * Calls Gemini API to classify outfit and generate blessing
-         */
-        async function analyzeImageWithGemini(base64Image) {
-            const apiKey = document.getElementById('apiKey')?.value || '';
-            let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-            if (apiKey) {
-                url += `?key=${apiKey}`;
-            } else {
-                url = '/api/gemini'; // Internal dev proxy if no key provided
-            }
-
-            const prompt = "Analyze the user's clothing in the image. Return a JSON object with the following keys: 'color' (classify into 'red/yellow/orange', 'blue/cyan', 'black/white/gray', 'multi/print'), 'style' (classify into 'A-line/umbrella skirt', 'H-line/straight', 'O-line/loose/cocoon', 'casual', 'tight/slim'), 'material' (classify into 'leather/patent', 'knit/tweed/wool', 'silk/chiffon', 'denim', 'cotton/linen'), 'hair' (classify into 'draped/down', 'high pony', 'twin pony', 'updo/bun', 'short'), 'pattern' (classify into 'polka-dot', 'stripes/lines', 'solid/plain', 'plaid/check/grid', 'color-block'), 'blessing' (generate a beautiful 4-character parallel classical Chinese blessing/phrase, e.g. '绯红霓裳' or '金玉满堂', matching the color or vibe of their outfit). Do not include any markdown formatting, just the raw JSON.";
-
-            const payload = {
-                contents: [{
-                    parts: [
-                        { text: prompt },
-                        {
-                            inlineData: {
-                                mimeType: "image/jpeg",
-                                data: base64Image
-                            }
-                        }
-                    ]
-                }],
-                generationConfig: {
-                    responseMimeType: "application/json"
-                }
-            };
-
-            const response = await fetchWithTimeout(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }, 12000);
-
-            if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
-            
-            const resJson = await response.json();
-            const textResp = resJson.candidates[0].content.parts[0].text;
-            return translateTags(textResp);
-        }
-
-        /**
-         * Calls local Ollama Moondream to classify outfit and generate blessing
-         */
-        async function analyzeImageWithGemma(base64Image) {
-            const endpoint = document.getElementById('apiEndpoint')?.value || 'http://localhost:11434/v1';
-            const url = `${endpoint}/chat/completions`;
-
-            const prompt = "Analyze the person's clothing. Respond ONLY with a JSON object containing these keys: 'color' (red/yellow/orange, blue/cyan, black/white/gray, multi/print), 'style' (A-line/umbrella skirt, H-line/straight, O-line/loose/cocoon, casual, tight/slim), 'material' (leather/patent, knit/tweed/wool, silk/chiffon, denim, cotton/linen), 'hair' (draped/down, high pony, twin pony, updo/bun, short), 'pattern' (polka-dot, stripes/lines, solid/plain, plaid/check/grid, color-block), 'blessing' (generate a beautiful 4-character parallel classical Chinese blessing/phrase, e.g. '绯红霓裳' or '金玉满堂', matching the color or vibe of their outfit). No markdown, no conversation.";
-
-            const payload = {
-                model: "gemma4:e2b", // Local VLM backbone
-                messages: [{
-                    role: "user",
-                    content: [
-                        { type: "text", text: prompt },
-                        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
-                    ]
-                }],
-                temperature: 0.2
-            };
-
-            const response = await fetchWithTimeout(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }, 45000);
-
-            if (!response.ok) throw new Error(`Ollama Moondream error: ${response.status}`);
-
-            const resJson = await response.json();
-            const textResp = resJson.choices[0].message.content;
-            return translateTags(textResp);
-        }
-
-        const tagTranslationMap = {
-            color: {
-                "red/yellow/orange": "红/黄/橙",
-                "blue/cyan": "蓝/青",
-                "black/white/gray": "黑/白/灰",
-                "multi/print": "多色/印花",
-                "red": "红/黄/橙",
-                "yellow": "红/黄/橙",
-                "orange": "红/黄/橙",
-                "blue": "蓝/青",
-                "cyan": "蓝/青",
-                "green": "蓝/青",
-                "black": "黑/白/灰",
-                "white": "黑/白/灰",
-                "gray": "黑/白/灰",
-                "grey": "黑/白/灰",
-                "multi": "多色/印花",
-                "print": "多色/印花"
-            },
-            style: {
-                "a-line/umbrella skirt": "A型/伞裙",
-                "h-line/straight": "H型/直筒",
-                "o-line/loose/cocoon": "O型/宽松茧型",
-                "casual": "休闲风格",
-                "tight/slim": "紧身风格"
-            },
-            material: {
-                "leather/patent": "皮革/漆皮",
-                "knit/tweed/wool": "针织/粗花呢",
-                "silk/chiffon": "丝绸/雪纺",
-                "denim": "牛仔",
-                "cotton/linen": "棉麻"
-            },
-            hair: {
-                "draped/down": "披肩发",
-                "high pony": "高马尾",
-                "twin pony": "双马尾",
-                "updo/bun": "丸子头/盘发",
-                "short": "短发"
-            },
-            pattern: {
-                "polka-dot": "波点",
-                "stripes/lines": "线条",
-                "solid/plain": "纯色",
-                "plaid/check/grid": "格纹",
-                "color-block": "拼色"
-            }
-        };
-
-        /**
-         * Parses VLM response and translates tags to standard Chinese keys, preserving the blessing
-         */
-        function translateTags(textResp) {
-            let cleanText = textResp.trim();
-            console.log("[AI Match] Raw text from VLM:", cleanText);
-
-            const firstBracket = cleanText.indexOf('{');
-            const lastBracket = cleanText.lastIndexOf('}');
-            const translatedTags = {};
-            let parsedSuccessfully = false;
-
-            if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-                try {
-                    const jsonStr = cleanText.substring(firstBracket, lastBracket + 1);
-                    const parsedJson = JSON.parse(jsonStr);
-                    
-                    // Translate standard keys
-                    for (let key in tagTranslationMap) {
-                        if (parsedJson[key]) {
-                            const rawVal = parsedJson[key].toLowerCase().trim();
-                            translatedTags[key] = tagTranslationMap[key][rawVal] || parsedJson[key];
-                        } else {
-                            translatedTags[key] = "未知";
-                        }
-                    }
-                    
-                    // Preserve the blessing phrase exactly as generated!
-                    if (parsedJson.blessing) {
-                        translatedTags.blessing = parsedJson.blessing.trim();
-                    } else {
-                        translatedTags.blessing = "岁岁平安，万事大吉";
-                    }
-                    
-                    parsedSuccessfully = true;
-                } catch (e) {
-                    console.warn("JSON parse failed, using fallback.");
-                }
-            }
-
-            if (!parsedSuccessfully) {
-                // Simple fallback parser if VLM returns plain text instead of JSON
-                const lowerText = cleanText.toLowerCase();
-                const keywordExtractorMap = {
-                    color: [ { keywords: ["red", "yellow", "orange"], tag: "红/黄/橙" }, { keywords: ["blue", "cyan", "green"], tag: "蓝/青" }, { keywords: ["black", "white", "gray"], tag: "黑/白/灰" }, { keywords: ["multi", "print", "color"], tag: "多色/印花" } ],
-                    style: [ { keywords: ["a-line", "umbrella", "skirt", "dress"], tag: "A型/伞裙" }, { keywords: ["h-line", "straight"], tag: "H型/直筒" }, { keywords: ["o-line", "loose", "cocoon"], tag: "O型/宽松茧型" }, { keywords: ["casual"], tag: "休闲风格" }, { keywords: ["tight", "slim"], tag: "紧身风格" } ],
-                    material: [ { keywords: ["leather", "patent"], tag: "皮革/漆皮" }, { keywords: ["knit", "tweed", "wool"], tag: "针织/粗花呢" }, { keywords: ["silk", "chiffon", "satin", "glaze"], tag: "丝绸/雪纺" } ],
-                    hair: [ { keywords: ["draped", "down"], tag: "披肩发" }, { keywords: ["high pony", "ponytail"], tag: "高马尾" }, { keywords: ["twin pony", "double"], tag: "双马尾" }, { keywords: ["updo", "bun"], tag: "丸子头/盘发" }, { keywords: ["short"], tag: "短发" } ],
-                    pattern: [ { keywords: ["polka-dot", "dot", "dots"], tag: "波点" }, { keywords: ["stripes", "line", "lines"], tag: "线条" }, { keywords: ["solid", "plain"], tag: "纯色" }, { keywords: ["plaid", "check", "grid"], tag: "格纹" }, { keywords: ["color-block"], tag: "拼色" } ]
-                };
-
-                for (let key in keywordExtractorMap) {
-                    let found = false;
-                    for (let rule of keywordExtractorMap[key]) {
-                        for (let kw of rule.keywords) {
-                            if (lowerText.includes(kw)) {
-                                translatedTags[key] = rule.tag;
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (found) break;
-                    }
-                    if (!found) translatedTags[key] = "未知";
-                }
-                translatedTags.blessing = "岁岁平安，万事大吉"; // Fallback blessing
-            }
-            return translatedTags;
-        }
-
-        /**
-         * Matches the user's OOTD tags against the figurines database
-         */
-        function matchFigurine(userTags) {
-            let bestMatch = null;
-            let highestScore = -1;
-            
-            figurinesDb.forEach(fig => {
-                let score = 0;
-                for (let key in fig.tags) {
-                    if (fig.tags[key] === userTags[key]) {
-                        score += 1;
-                    }
-                }
-                if (score > highestScore) {
-                    highestScore = score;
-                    bestMatch = fig;
-                }
-            });
-            
-            return { figurine: bestMatch, score: highestScore };
-        }
 
         /**
          * Updates the clothing mesh colors in Three.js to match the OOTD hue
@@ -1302,23 +1376,13 @@
             };
             mocap.onPoseSuccess = function(poseKey) {
                 console.log("[Mocap Callback] Pose success! Awakening figurine.");
-                triggerSancaiDance();
+                triggerMainDance();
             };
         }
 
         // ================= UTILITY HELPERS =================
 
-        /**
-         * Resilient fetch wrapper with network timeout
-         */
-        function fetchWithTimeout(url, options, timeout = 25000) {
-            return Promise.race([
-                fetch(url, options),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("请求超时 (Timeout)")), timeout)
-                )
-            ]);
-        }
+        
 
         /**
          * Synthesizes a beautiful chime sound using Web Audio API
@@ -1363,27 +1427,7 @@
             badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full mr-1.5 ${colorClass}" id="statusDot"></span> ${text}`;
         }
 
-        /**
-         * Tactile click sound for carousel
-         */
-        function playUIChime() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(550, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.08);
-                gain.gain.setValueAtTime(0.04, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.08);
-            } catch (e) {
-                // Blocked by autoplay
-            }
-        }
+        
 
 
 
@@ -1400,7 +1444,7 @@
             }
             
             currentState = AppState.STANDBY_WAIT;
-            triggerSancaiDance();
+            triggerMainDance();
         }
     </script>
 
